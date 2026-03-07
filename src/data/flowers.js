@@ -5,7 +5,7 @@ export const flowers = [
     flower: "tulip",
     color: "#FF7EB6",
     glowColor: "rgba(255, 126, 182, 0.6)",
-    message: "Like a tulip in spring, you bring energy, kindness, and positivity to the team. Your presence makes every day brighter.",
+    message: "Như bông tulip giữa mùa xuân, bạn mang đến cho đội nhóm nguồn năng lượng, sự nhân ái và ninh vui tươi. Sự hiện diện của bạn làm cho mỗi ngày đều thêm rực rỡ.",
     position: { x: 15, y: 65 },
   },
   {
@@ -14,7 +14,7 @@ export const flowers = [
     flower: "sunflower",
     color: "#FFB347",
     glowColor: "rgba(255, 179, 71, 0.6)",
-    message: "Like a sunflower always turning toward the light, your warmth and positivity brighten every room you walk into.",
+    message: "Như bông hướng dương luôn hướng về phía mặt trời, sự ấm áp và lạc quan của bạn soi sáng bất kỳ căn phòng nào bạn bước vào.",
     position: { x: 30, y: 70 },
   },
   {
@@ -23,7 +23,7 @@ export const flowers = [
     flower: "lavender",
     color: "#A78BFA",
     glowColor: "rgba(167, 139, 250, 0.6)",
-    message: "Like lavender in the breeze, your calm wisdom and gentle strength bring peace and clarity to everyone around you.",
+    message: "Như hoa oai hương trong lõng gió, sự bình tĩnh khôn ngoan và sức mạnh dịu dàng của bạn mang lại sự bình yên và sáng suốt cho tất cả những ai xung quanh.",
     position: { x: 50, y: 68 },
   },
   {
@@ -32,7 +32,7 @@ export const flowers = [
     flower: "rose",
     color: "#FF7EB6",
     glowColor: "rgba(255, 100, 150, 0.7)",
-    message: "Like a rose in full bloom, your beauty — both inside and out — inspires everyone to grow a little more each day.",
+    message: "Như bông hồng đang nở rộ, vẻ đẹp của bạn — cả bên trong lẫn bên ngoài — truyền cảm hứng cho mọi người cùng trưởng thành hơn mỗi ngày.",
     position: { x: 68, y: 72 },
   },
   {
@@ -41,7 +41,7 @@ export const flowers = [
     flower: "lily",
     color: "#6EE7B7",
     glowColor: "rgba(110, 231, 183, 0.6)",
-    message: "Like a lily standing tall, your grace, intelligence, and determination make the whole team believe anything is possible.",
+    message: "Như bông ly vươn thẳng rạng ngời, sự duyên dáng, trí tuệ và quyết tâm của bạn khieến cả đội nhóm tin rằng không có gì là không thể.",
     position: { x: 82, y: 66 },
   },
   {
@@ -50,7 +50,7 @@ export const flowers = [
     flower: "jasmine",
     color: "#FDE68A",
     glowColor: "rgba(253, 230, 138, 0.6)",
-    message: "Like jasmine in the night, your kindness fills the air around you — quiet, gentle, and impossible to forget.",
+    message: "Như hoa lài trong đêm, sự nhân hậu của bạn tỏa hương xung quanh — nhẹ nhàng, dịu dàng và khó quên.",
     position: { x: 22, y: 58 },
   },
   {
@@ -59,7 +59,7 @@ export const flowers = [
     flower: "orchid",
     color: "#A78BFA",
     glowColor: "rgba(167, 139, 250, 0.5)",
-    message: "Like an orchid, rare and extraordinary, you bring elegance and precision to everything you do. A true gem of the team.",
+    message: "Như hoa phong lan — hiếm quý và phi thường — bạn mang đến sự thanh tao và chỉn chu trong mọi việc bạn làm. Một viên ngọc thực sự của đội nhóm.",
     position: { x: 60, y: 60 },
   },
   {
@@ -68,7 +68,8 @@ export const flowers = [
     flower: "daisy",
     color: "#6EE7B7",
     glowColor: "rgba(110, 231, 183, 0.5)",
-    message: "Like a daisy in the field, your cheerful spirit and honest heart remind us all of the simple joy of doing great work together.",
+    message: "Như bông cúc trên cánh đồng, tinh thần vui tươi và con tim chân thành của bạn nhắc nhở chúng ta về niềm vui giản dị khi cùng nhau làm những điều tuyệt vời.",
     position: { x: 42, y: 75 },
   },
 ];
+

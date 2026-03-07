@@ -79,7 +79,7 @@ export default function FinaleScreen({ onRestart }) {
           className="text-sm tracking-[0.3em] uppercase mb-6 font-semibold"
           style={{ color: '#064E3B', fontFamily: 'Inter' }}
         >
-          Happy International Women&apos;s Day
+          Chào mừng Ngày Quốc tế Phụ nữ
         </motion.p>
 
         <motion.h1
@@ -92,7 +92,7 @@ export default function FinaleScreen({ onRestart }) {
             color: '#111827',
           }}
         >
-          To the incredible women of BambuUP —
+          Gửi đến những người phụ nữ phi thường của BambuUP —
         </motion.h1>
 
         <motion.h2
@@ -106,7 +106,7 @@ export default function FinaleScreen({ onRestart }) {
             color: '#059669',
           }}
         >
-          thank you for helping our garden grow.
+          cảm ơn vì đã giúp khu vườn của chúng ta nở rộ.
         </motion.h2>
 
         <motion.div
@@ -124,8 +124,8 @@ export default function FinaleScreen({ onRestart }) {
           className="text-sm mb-10 font-medium"
           style={{ color: '#4B5563', fontFamily: 'Inter', letterSpacing: '0.05em' }}
         >
-          Your brilliance, kindness, and strength inspire us every day.<br />
-          This garden exists because of you. 💫
+          Sự tài giỏi, lòng tốt và sức mạnh của các bạn truyền cảm hứng cho chúng tôi mỗi ngày.<br />
+          Khu vườn này tồn tại là nhờ có các bạn. 💫
         </motion.p>
 
         <motion.button
@@ -144,7 +144,7 @@ export default function FinaleScreen({ onRestart }) {
             color: '#047857',
           }}
         >
-          Return to Garden
+          Quay lại Khu Vườn
         </motion.button>
       </div>
     </motion.div>

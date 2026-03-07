@@ -1,247 +1,380 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ParticleBackground from './ParticleBackground'
-import Flower from './Flower'
-import { flowerTypes, moodPalettes, energyTraits, generateMessage } from '../data/bouquet'
+import BouquetDisplay from './BouquetDisplay'
+import { FLOWER_SVGS } from './Flower'
+import { flowerCatalog, generateBouquetMessage } from '../data/bouquet'
 import { Sparkles, ArrowRight } from 'lucide-react'
 
+// ── Minimal flower card — illustration + name + color dots ──────────────────
+function FlowerCard({ flower, isSelected, sel, onToggle, onColorChange }) {
+  const Shape = FLOWER_SVGS[flower.svgType]
+  const colorHex = sel?.colorHex || flower.defaultColor
+
+  return (
+    <motion.button
+      onClick={onToggle}
+      whileHover={{ scale: 1.07, y: -4 }}
+      whileTap={{ scale: 0.94 }}
+      className="relative flex flex-col items-center gap-2 py-5 px-3 rounded-2xl border transition-all text-center overflow-hidden select-none"
+      style={isSelected ? {
+        borderColor: colorHex,
+        background: `#ffffff`,
+        boxShadow: `0 0 0 2px ${colorHex}60, 0 8px 28px ${colorHex}30`,
+      } : {
+        borderColor: 'transparent',
+        background: '#fafafa',
+        boxShadow: '0 1px 6px rgba(0,0,0,0.05)',
+      }}
+    >
+      {/* Soft radial glow behind flower when selected */}
+      <AnimatePresence>
+        {isSelected && (
+          <motion.div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: `radial-gradient(ellipse at 50% 48%, ${colorHex}28 0%, transparent 70%)` }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Selected check badge */}
+      <AnimatePresence>
+        {isSelected && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 250, damping: 18 }}
+            className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center z-10"
+            style={{ background: colorHex, boxShadow: `0 2px 8px ${colorHex}70` }}
+          >
+            <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+              <path d="M1 3.5L3 5.5L8 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Flower illustration */}
+      <motion.div
+        className="relative z-10"
+        style={{ width: 60, height: 60, flexShrink: 0 }}
+        animate={isSelected ? { scale: [1, 1.06, 1] } : { scale: 1 }}
+        transition={{ duration: 2.2, repeat: isSelected ? Infinity : 0, ease: 'easeInOut' }}
+      >
+        {Shape ? (
+          <Shape
+            color={colorHex}
+            secondary={flower.secondary}
+            isHovered={false}
+            isBlooomed={isSelected}
+          />
+        ) : (
+          <span className="text-4xl leading-none">{flower.emoji}</span>
+        )}
+      </motion.div>
+
+      {/* Flower name */}
+      <motion.span
+        className="relative z-10 text-xs font-semibold leading-tight"
+        animate={{ color: isSelected ? colorHex : '#9ca3af' }}
+        transition={{ duration: 0.3 }}
+      >
+        {flower.name}
+      </motion.span>
+
+      {/* Color dots */}
+      <div className="flex gap-1.5 relative z-10 flex-wrap justify-center" style={{ minHeight: 12 }}>
+        {flower.colors.map((c) => (
+          <motion.button
+            key={c.id}
+            onClick={(e) => { e.stopPropagation(); onColorChange(e, c.hex) }}
+            whileHover={{ scale: 1.5 }}
+            whileTap={{ scale: 0.85 }}
+            title={c.label}
+            className="rounded-full flex-shrink-0"
+            style={{
+              width: 9, height: 9,
+              background: c.hex,
+              boxShadow: sel?.colorHex === c.hex
+                ? `0 0 0 1.5px white, 0 0 0 3px ${c.hex}`
+                : '0 1px 3px rgba(0,0,0,0.2)',
+            }}
+          />
+        ))}
+      </div>
+    </motion.button>
+  )
+}
+
+// ── Main scene ─────────────────────────────────────────────────────────────
 export default function GardenScene({ onFinale }) {
   const [step, setStep] = useState('form') // 'form' | 'bouquet'
   const [name, setName] = useState('')
-  const [flowerId, setFlowerId] = useState('rose')
-  const [moodId, setMoodId] = useState('bloom')
-  const [energyId, setEnergyId] = useState('creative')
+  const [selectedFlowers, setSelectedFlowers] = useState([])
+  const [petals, setPetals] = useState([])
+  const petalId = { current: 0 }
 
-  const currentFlower = flowerTypes.find(f => f.id === flowerId)
-  const currentMood = moodPalettes.find(m => m.id === moodId)
-  
-  const handleGrow = () => {
-    if (name.trim()) setStep('bouquet')
+  const spawnPetal = (flower) => {
+    const id = petalId.current++
+    const x = 30 + Math.random() * 40
+    const dx = (Math.random() - 0.5) * 130
+    setPetals((p) => [...p, { id, emoji: flower.emoji, x, dx }])
+    setTimeout(() => setPetals((p) => p.filter((e) => e.id !== id)), 2000)
   }
 
-  // Bouquet structural arrangement
-  const bouquetPositions = [
-    { x: 50, y: 35, size: 'large', delay: 0, rotate: 0 },
-    { x: 40, y: 45, size: 'normal', delay: 0.2, rotate: -15 },
-    { x: 60, y: 45, size: 'normal', delay: 0.4, rotate: 15 },
-    { x: 32, y: 55, size: 'small', delay: 0.6, rotate: -25 },
-    { x: 68, y: 55, size: 'small', delay: 0.8, rotate: 25 },
-    { x: 50, y: 60, size: 'normal', delay: 1.0, rotate: 0 },
-  ]
+  const toggleFlower = (flower) => {
+    const isSelected = selectedFlowers.some((sf) => sf.flowerId === flower.id)
+    if (isSelected) {
+      setSelectedFlowers((p) => p.filter((sf) => sf.flowerId !== flower.id))
+    } else {
+      setSelectedFlowers((p) => [...p, { flowerId: flower.id, colorHex: flower.defaultColor }])
+      spawnPetal(flower)
+    }
+  }
+
+  const changeFlowerColor = (e, flower, colorHex) => {
+    e.stopPropagation()
+    const isSelected = selectedFlowers.some((sf) => sf.flowerId === flower.id)
+    if (isSelected) {
+      setSelectedFlowers((p) => p.map((sf) => sf.flowerId === flower.id ? { ...sf, colorHex } : sf))
+    } else {
+      setSelectedFlowers((p) => [...p, { flowerId: flower.id, colorHex }])
+      spawnPetal(flower)
+    }
+  }
+
+  const canCreate = name.trim() && selectedFlowers.length > 0
+
+  const accentColor = useMemo(() => {
+    if (!selectedFlowers.length) return '#EC4899'
+    return flowerCatalog.find((f) => f.id === selectedFlowers[0].flowerId)?.defaultColor || '#EC4899'
+  }, [selectedFlowers])
+
+  const msg = useMemo(
+    () => generateBouquetMessage(name, selectedFlowers),
+    [name, selectedFlowers]
+  )
 
   return (
     <motion.div
       className="fixed inset-0 overflow-y-auto overflow-x-hidden"
-      style={{
-        background: `linear-gradient(180deg, ${currentMood?.bg[0] || '#0B0F1A'} 0%, ${currentMood?.bg[1] || '#0f1724'} 60%, ${currentMood?.bg[2] || '#111a10'} 100%)`,
-        transition: 'background 1s ease-in-out'
-      }}
+      style={{ background: 'linear-gradient(180deg, #FFFAF5 0%, #FFF0F7 55%, #FFE8F2 100%)' }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 1.5 }}
     >
       <ParticleBackground phase={step === 'form' ? 'intro-bamboo' : 'garden'} />
 
-      {/* Decorative stars/fireflies for background depth */}
+      {/* Ambient sparkles */}
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
-        {Array.from({ length: 30 }, (_, i) => (
+        {Array.from({ length: 16 }, (_, i) => (
           <motion.div
             key={i}
             className="absolute rounded-full"
             style={{
-              width: Math.random() * 3 + 1, height: Math.random() * 3 + 1,
-              background: currentMood?.colors[i % 3] || 'white',
-              left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`,
-              opacity: Math.random() * 0.4 + 0.1,
-              boxShadow: `0 0 10px ${currentMood?.colors[i % 3]}`
+              width: (i % 3) + 1.5,
+              height: (i % 3) + 1.5,
+              background: ['#FF7EB6', '#A78BFA', '#6EE7B7', '#FDE68A'][i % 4],
+              left: `${(i * 23 + 7) % 97}%`,
+              top: `${(i * 17 + 11) % 91}%`,
             }}
-            animate={{ opacity: [0.1, 0.6, 0.1] }}
-            transition={{ duration: 2 + Math.random() * 4, repeat: Infinity, delay: Math.random() * 3 }}
+            animate={{ opacity: [0.04, 0.38, 0.04], scale: [1, 1.6, 1] }}
+            transition={{ duration: 3.5 + (i % 4), repeat: Infinity, delay: i * 0.55 }}
           />
         ))}
       </div>
 
-      <div className="relative z-10 min-h-full flex flex-col items-center justify-center py-12 px-6">
+      {/* Floating petals on selection */}
+      <div className="fixed inset-0 pointer-events-none z-50">
+        <AnimatePresence>
+          {petals.map((p) => (
+            <motion.span
+              key={p.id}
+              className="absolute text-3xl select-none"
+              style={{ left: `${p.x}%`, top: '44%' }}
+              initial={{ opacity: 1, y: 0, scale: 0.7, x: 0 }}
+              animate={{ opacity: 0, y: -150, scale: 1.5, x: p.dx }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.7, ease: 'easeOut' }}
+            >
+              {p.emoji}
+            </motion.span>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      <div className="relative z-10 min-h-full flex flex-col items-center justify-center py-12 px-4 md:px-6">
         <AnimatePresence mode="wait">
+
+          {/* ─── FORM STEP ─── */}
           {step === 'form' && (
             <motion.div
               key="form"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              exit={{ opacity: 0, scale: 0.96 }}
               transition={{ duration: 0.8 }}
-              className="w-full max-w-2xl bg-black/40 backdrop-blur-md rounded-3xl p-8 md:p-12 border border-white/10 shadow-2xl"
+              className="w-full max-w-3xl"
             >
-              <h2 className="text-3xl md:text-4xl text-center mb-2" style={{ fontFamily: '"Playfair Display", serif', color: '#064E3B' }}>
-                Plant Your Seed
-              </h2>
-              <p className="text-center text-gray-600 mb-10 font-light tracking-wide text-sm">
-                Every garden is unique. Tell us about yourself.
-              </p>
+              {/* Header */}
+              <div className="text-center mb-10">
+                <motion.h2
+                  className="text-4xl md:text-5xl mb-3 leading-tight"
+                  style={{ fontFamily: '"Playfair Display", serif', color: '#831843' }}
+                  initial={{ opacity: 0, y: -12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 1 }}
+                >
+                  Tạo Bó Hoa Của Bạn
+                </motion.h2>
+                <motion.p
+                  className="text-gray-400 font-light tracking-wide text-sm"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5, duration: 1 }}
+                >
+                   Chọn những bông hoa bạn yêu thích — chúng tôi sẽ tạo nên điều gì đó thật đẹp chỉ dành riêng cho bạn.
+                </motion.p>
+              </div>
 
-              <div className="space-y-8">
-                {/* Name */}
+              {/* Card */}
+              <div className="bg-white/80 backdrop-blur-md rounded-3xl p-6 md:p-10 border border-pink-100/80 shadow-2xl space-y-8">
+
+                {/* 1. Name input */}
                 <div>
-                  <label className="block text-gray-700 text-sm mb-3 uppercase tracking-widest font-medium">Your Name</label>
+                  <label className="block text-gray-400 text-xs mb-3 uppercase tracking-widest font-semibold">
+                    Tên Của Bạn
+                  </label>
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter your beautiful name..."
-                    className="w-full bg-white border border-gray-300 rounded-xl px-6 py-4 text-gray-900 focus:outline-none focus:border-[#059669] transition-colors"
+                    placeholder="Nhập tên thương thương của bạn…"
+                    className="w-full bg-white border border-pink-200 rounded-2xl px-6 py-4 text-gray-800 text-lg focus:outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all placeholder-gray-300"
                   />
                 </div>
 
-                {/* Flower Selection */}
+                {/* 2. Flower selection */}
                 <div>
-                  <label className="block text-gray-700 text-sm mb-3 uppercase tracking-widest font-medium">Your Flower ({currentFlower?.name})</label>
-                  <div className="grid grid-cols-4 md:grid-cols-7 gap-3">
-                    {flowerTypes.map(f => (
-                      <button
-                        key={f.id}
-                        onClick={() => setFlowerId(f.id)}
-                        className={`flex flex-col items-center p-3 rounded-xl border transition-all ${flowerId === f.id ? 'bg-green-50 border-green-300 scale-105 shadow-sm' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
-                      >
-                        <span className="text-2xl mb-1">{f.emoji}</span>
-                      </button>
-                    ))}
+                  <label className="block text-gray-400 text-xs mb-1 uppercase tracking-widest font-semibold">
+                    Chọn Hoa Của Bạn
+                  </label>
+                  <p className="text-gray-400 text-xs mb-5">Có thể chọn nhiều loại hạt nhé</p>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    {flowerCatalog.map((flower) => {
+                      const sel = selectedFlowers.find((sf) => sf.flowerId === flower.id)
+                      return (
+                        <FlowerCard
+                          key={flower.id}
+                          flower={flower}
+                          isSelected={!!sel}
+                          sel={sel}
+                          onToggle={() => toggleFlower(flower)}
+                          onColorChange={(e, hex) => changeFlowerColor(e, flower, hex)}
+                        />
+                      )
+                    })}
                   </div>
                 </div>
 
-                {/* Mood Selection */}
-                <div>
-                  <label className="block text-gray-700 text-sm mb-3 uppercase tracking-widest font-medium">Your Mood</label>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                    {moodPalettes.map(m => (
-                      <button
-                        key={m.id}
-                        onClick={() => setMoodId(m.id)}
-                        className={`p-3 rounded-xl border text-xs text-center transition-all ${moodId === m.id ? 'bg-green-50 border-green-300 shadow-sm' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
-                      >
-                        <div className="flex justify-center gap-1 mb-2">
-                          {m.colors.map((c, i) => <div key={i} className="w-3 h-3 rounded-full" style={{ background: c }} />)}
-                        </div>
-                        <span className="text-gray-700 font-medium truncate block">{m.name}</span>
-                      </button>
-                    ))}
-                  </div>
+                {/* 3. CTA */}
+                <div className="flex justify-center pt-2">
+                  <motion.button
+                    whileHover={canCreate ? { scale: 1.06, y: -2 } : {}}
+                    whileTap={canCreate ? { scale: 0.96 } : {}}
+                    onClick={() => canCreate && setStep('bouquet')}
+                    disabled={!canCreate}
+                    className="px-10 py-4 rounded-full text-sm font-bold tracking-widest uppercase flex items-center gap-3 transition-all"
+                    style={canCreate ? {
+                      background: 'linear-gradient(135deg, #F9A8D4 0%, #EC4899 50%, #BE185D 100%)',
+                      color: 'white',
+                      boxShadow: '0 6px 24px rgba(236,72,153,0.38)',
+                    } : {
+                      background: '#f3f4f6',
+                      color: '#9ca3af',
+                      cursor: 'not-allowed',
+                    }}
+                  >
+                    <Sparkles size={18} />
+                    Tạo Bó Hoa Của Tôi
+                  </motion.button>
                 </div>
-
-                {/* Energy Selection */}
-                <div>
-                  <label className="block text-gray-700 text-sm mb-3 uppercase tracking-widest font-medium">Your Energy</label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {energyTraits.map(e => (
-                      <button
-                        key={e.id}
-                        onClick={() => setEnergyId(e.id)}
-                        className={`p-4 rounded-xl border text-left flex items-center gap-3 transition-all ${energyId === e.id ? 'bg-green-50 border-green-300 shadow-sm' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
-                      >
-                        <span className="text-xl">{e.icon}</span>
-                        <div>
-                          <p className="text-gray-900 text-sm font-semibold">{e.name}</p>
-                          <p className="text-gray-500 text-xs">{e.description}</p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-12 flex justify-center">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleGrow}
-                  disabled={!name.trim()}
-                  className={`px-10 py-4 rounded-full text-sm font-bold tracking-widest uppercase flex items-center gap-2 ${!name.trim() ? 'opacity-50 cursor-not-allowed bg-gray-200 text-gray-500' : 'bg-[#10B981] text-white shadow-[0_4px_15px_rgba(16,185,129,0.3)] hover:shadow-[0_6px_20px_rgba(16,185,129,0.4)] hover:bg-[#059669]'}`}
-                >
-                  <Sparkles size={18} />
-                  Grow Bouquet
-                </motion.button>
               </div>
             </motion.div>
           )}
 
+          {/* ─── BOUQUET STEP ─── */}
           {step === 'bouquet' && (
             <motion.div
               key="bouquet"
-              className="w-full max-w-4xl flex flex-col md:flex-row items-center gap-12"
+              className="w-full max-w-5xl flex flex-col md:flex-row items-center gap-10 md:gap-14"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 1.5 }}
             >
-              {/* Left: Bouquet Presentation */}
-              <div className="relative w-[300px] h-[400px] md:w-[400px] md:h-[500px] shrink-0">
-                {/* Background aura */}
-                <motion.div 
-                  className="absolute inset-0 rounded-full blur-3xl opacity-30 pointer-events-none"
-                  style={{ background: `radial-gradient(circle, ${currentFlower?.color}, transparent)`, transform: 'scale(0.8)' }}
-                  animate={{ scale: [0.8, 1, 0.8], opacity: [0.3, 0.5, 0.3] }}
-                  transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-                />
+              {/* Bouquet display */}
+              <BouquetDisplay selectedFlowers={selectedFlowers} />
 
-                {bouquetPositions.map((pos, i) => (
-                  <motion.div
-                    key={i}
-                    className="absolute"
-                    style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: `translate(-50%, -50%) rotate(${pos.rotate}deg)` }}
-                    initial={{ scale: 0, opacity: 0, y: 50 }}
-                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                    transition={{ delay: pos.delay, duration: 1.5, type: 'spring' }}
-                  >
-                    <Flower 
-                      data={{ 
-                        id: i, 
-                        flower: currentFlower.id, 
-                        color: currentMood.colors[i % currentMood.colors.length], 
-                        secondary: currentMood.colors[(i + 1) % currentMood.colors.length] 
-                      }} 
-                      size={pos.size}
-                      discovered={true}
-                    />
-                  </motion.div>
-                ))}
-              </div>
-
-              {/* Right: Message Presentation */}
-              <motion.div 
-                className="flex-1 bg-white/80 backdrop-blur-xl border border-gray-200 p-8 md:p-12 rounded-3xl shadow-2xl"
+              {/* Message card */}
+              <motion.div
+                className="flex-1 bg-white/88 backdrop-blur-xl border border-pink-100 p-8 md:p-12 rounded-3xl shadow-2xl"
                 initial={{ opacity: 0, x: 50 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 1.5, duration: 1 }}
+                transition={{ delay: 1.4, duration: 1 }}
               >
-                {(() => {
-                  const msg = generateMessage(name, flowerId, moodId, energyId);
-                  return (
-                    <>
-                      <h3 className="text-3xl mb-6" style={{ fontFamily: '"Playfair Display", serif', color: currentMood.colors[0] }}>
-                        {msg.greeting}
-                      </h3>
-                      <p className="text-lg text-gray-700 leading-relaxed mb-6 font-medium">
-                        {msg.body}
-                      </p>
-                      <p className="text-base text-gray-500 italic mb-10">
-                        {msg.closing}
-                      </p>
-                      <p className="text-xl font-medium tracking-wide" style={{ color: currentMood.colors[1] }}>
-                        {msg.wish}
-                      </p>
-                    </>
-                  )
-                })()}
+                <h3
+                  className="text-3xl md:text-4xl mb-6"
+                  style={{ fontFamily: '"Playfair Display", serif', color: '#BE185D' }}
+                >
+                  {msg.greeting}
+                </h3>
+
+                <div className="space-y-4 mb-8">
+                  {msg.paragraphs.map((para, i) => (
+                    <motion.p
+                      key={i}
+                      className={`leading-relaxed text-sm md:text-base ${
+                        i === msg.paragraphs.length - 1 ? 'text-gray-400 italic' : 'text-gray-700'
+                      }`}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 1.6 + i * 0.28, duration: 0.7 }}
+                    >
+                      {para}
+                    </motion.p>
+                  ))}
+                </div>
+
+                <motion.p
+                  className="text-xl font-semibold tracking-wide"
+                  style={{ color: accentColor }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 2.8, duration: 0.8 }}
+                >
+                  {msg.wish}
+                </motion.p>
 
                 <motion.button
-                  className="mt-12 flex items-center gap-3 text-gray-400 hover:text-gray-800 transition-colors uppercase tracking-widest text-xs font-bold"
+                  className="mt-10 flex items-center gap-3 text-gray-300 hover:text-gray-600 transition-colors uppercase tracking-widest text-xs font-bold"
                   onClick={onFinale}
-                  whileHover={{ x: 5 }}
+                  whileHover={{ x: 6 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 3.2, duration: 0.6 }}
                 >
-                  Continue to Garden <ArrowRight size={16} />
+                  Tiếp tục vào Khu Vườn <ArrowRight size={15} />
                 </motion.button>
               </motion.div>
-
             </motion.div>
           )}
+
         </AnimatePresence>
       </div>
     </motion.div>
