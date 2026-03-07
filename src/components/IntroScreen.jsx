@@ -229,7 +229,7 @@ export default function IntroScreen({ onComplete }) {
       texts: [
         "“Chị em tôi toả nắng vàng lịch sử",
         "Nắng cho đời, nắng cũng cho thơ.”",
-        "Huy Cận",
+        "- Huy Cận",
       ],
       action: "Tiếp tục",
     },

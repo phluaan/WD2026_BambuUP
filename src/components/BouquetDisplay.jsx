@@ -5,7 +5,7 @@ import { flowerCatalog } from '../data/bouquet'
 // ── Canvas ─────────────────────────────────────────────────────────────────────
 const CW = 340, CH = 440
 
-// ── Colour helper ─────────────────────────────────────────────────────────────
+// ── Colour helpers ─────────────────────────────────────────────────────────────
 function dk(hex, a = 0.18) {
   const n = parseInt(hex.replace('#', ''), 16)
   const r = Math.round(((n >> 16) & 255) * (1 - a))
@@ -14,233 +14,431 @@ function dk(hex, a = 0.18) {
   return `rgb(${r},${g},${b})`
 }
 
-// ── Motion wrapper for SVG groups ─────────────────────────────────────────────
-const SVG_ANIM = {
-  initial: { scale: 0, opacity: 0 },
-  animate: { scale: 1, opacity: 1 },
-}
-const svgStyle = { transformBox: 'fill-box', transformOrigin: 'center' }
+// ── Motion wrapper ─────────────────────────────────────────────────────────────
+const SVG_ANIM = { initial: { scale: 0, opacity: 0 }, animate: { scale: 1, opacity: 1 } }
+const svgStyle  = { transformBox: 'fill-box', transformOrigin: 'center' }
 function Mg({ delay, children }) {
   return (
-    <motion.g
-      {...SVG_ANIM}
+    <motion.g {...SVG_ANIM}
       transition={{ delay, duration: 0.65, type: 'spring', stiffness: 100, damping: 13 }}
-      style={svgStyle}
-    >
-      {children}
-    </motion.g>
+      style={svgStyle}>{children}</motion.g>
   )
 }
-function shadow(cx, cy, r) {
-  return <ellipse cx={cx + 3} cy={cy + 5} rx={r * 0.9} ry={r * 0.35} fill="rgba(0,0,0,0.10)" />
+
+// ── Shared utilities drawn inside each flower ──────────────────────────────────
+function Shadow({ cx, cy, r }) {
+  return <ellipse cx={cx + 3} cy={cy + 5} rx={r * 0.88} ry={r * 0.32} fill="rgba(0,0,0,0.10)" />
+}
+// Calyx: green sepal base anchoring flower to stem — removes "floating" effect
+function Calyx({ cx, cy, r }) {
+  const gy = cy + r * 0.72
+  return (
+    <g>
+      {/* left sepal */}
+      <ellipse cx={cx - r * 0.22} cy={gy - r * 0.08} rx={r * 0.18} ry={r * 0.30}
+        fill="#5A9B5E" opacity={0.85} transform={`rotate(-28,${cx - r * 0.22},${gy - r * 0.08})`} />
+      {/* right sepal */}
+      <ellipse cx={cx + r * 0.22} cy={gy - r * 0.08} rx={r * 0.18} ry={r * 0.30}
+        fill="#5A9B5E" opacity={0.85} transform={`rotate(28,${cx + r * 0.22},${gy - r * 0.08})`} />
+      {/* base cup */}
+      <path d={`M${cx - r * 0.26} ${gy} Q${cx} ${gy + r * 0.28} ${cx + r * 0.26} ${gy}`}
+        stroke="#4A8054" strokeWidth={r * 0.28} strokeLinecap="round" fill="none" opacity={0.75} />
+    </g>
+  )
+}
+// Vein line on a petal (from base towards tip)
+function Vein({ x1, y1, x2, y2, color, opacity = 0.28 }) {
+  return <line x1={x1} y1={y1} x2={x2} y2={y2}
+    stroke={color} strokeWidth={0.9} opacity={opacity} strokeLinecap="round" />
+}
+
+// ── 5-angle view system ───────────────────────────────────────────────────────
+// Each flower position in the bouquet gets one of 5 viewing angles:
+//  0 = full front   1 = lean-left     2 = foreshortened-top
+//  3 = lean-right   4 = side/profile
+const VIEW_PARAMS = [
+  { sx: 1.00, sy: 1.00, rot:   0 },  // 0 full front
+  { sx: 0.86, sy: 1.00, rot: -20 },  // 1 lean left   (was 0.80 → thicker)
+  { sx: 1.00, sy: 0.68, rot:   5 },  // 2 top view
+  { sx: 0.86, sy: 1.00, rot:  20 },  // 3 lean right  (was 0.80 → thicker)
+  { sx: 0.52, sy: 1.00, rot:   3 },  // 4 side profile (was 0.28 → much thicker)
+]
+function vt(cx, cy, variant) {
+  const { sx, sy, rot } = VIEW_PARAMS[variant ?? 0]
+  if (sx === 1 && sy === 1 && rot === 0) return undefined
+  return `translate(${cx} ${cy}) rotate(${rot}) scale(${sx} ${sy}) translate(${-cx} ${-cy})`
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// BOUQUET-EXCLUSIVE FLOWER RENDERERS (new illustrations, NOT from Flower.jsx)
-// ══════════════════════════════════════════════════════════════════════════════
+// BOUQUET-EXCLUSIVE FLOWER RENDERERS
+//══════════════════════════════════════════════════════════════════════════════
 
-// ── Rose: layered spiral petals ───────────────────────────────────────────────
-function BqRose({ cx, cy, r, color, delay = 0 }) {
-  const d = dk(color)
+// ── Rose: 3-layer spiral with vein detail ─────────────────────────────────────
+function BqRose({ cx, cy, r, color, delay = 0, variant = 0 }) {
+  const d = dk(color, 0.20)
+  const d2 = dk(color, 0.35)
+
   const outer = Array.from({ length: 5 }, (_, i) => {
-    const a = (i / 5) * 2 * Math.PI + 0.15
+    const a  = (i / 5) * 2 * Math.PI + 0.15
     const px = cx + Math.cos(a) * r * 0.44
     const py = cy + Math.sin(a) * r * 0.44
-    return <ellipse key={i} cx={px} cy={py} rx={r * 0.44} ry={r * 0.54}
-      fill={color} opacity={0.86}
-      transform={`rotate(${a * 180 / Math.PI + (i % 2 ? -22 : 22)},${px},${py})`} />
+    const rot = a * 180 / Math.PI + (i % 2 ? -24 : 24)
+    const vx2 = px + Math.cos(a) * r * 0.28
+    const vy2 = py + Math.sin(a) * r * 0.28
+    return (
+      <g key={i}>
+        <ellipse cx={px} cy={py} rx={r * 0.44} ry={r * 0.54} fill={color} opacity={0.86}
+          transform={`rotate(${rot},${px},${py})`} />
+        <Vein x1={px} y1={py} x2={vx2} y2={vy2} color={d2} />
+      </g>
+    )
   })
+
   const mid = Array.from({ length: 5 }, (_, i) => {
-    const a = ((i + 0.5) / 5) * 2 * Math.PI
+    const a  = ((i + 0.5) / 5) * 2 * Math.PI
     const px = cx + Math.cos(a) * r * 0.22
     const py = cy + Math.sin(a) * r * 0.22
-    return <ellipse key={i} cx={px} cy={py} rx={r * 0.30} ry={r * 0.38}
-      fill={d} opacity={0.92}
+    return <ellipse key={i} cx={px} cy={py} rx={r * 0.30} ry={r * 0.38} fill={d} opacity={0.93}
       transform={`rotate(${a * 180 / Math.PI},${px},${py})`} />
   })
+
+  const inner = Array.from({ length: 3 }, (_, i) => {
+    const a  = ((i) / 3) * 2 * Math.PI + 0.8
+    const px = cx + Math.cos(a) * r * 0.10
+    const py = cy + Math.sin(a) * r * 0.10
+    return <ellipse key={i} cx={px} cy={py} rx={r * 0.16} ry={r * 0.22} fill={d2} opacity={0.92}
+      transform={`rotate(${a * 180 / Math.PI},${px},${py})`} />
+  })
+
   return (
     <Mg delay={delay}>
-      {shadow(cx, cy, r)}
-      {outer}{mid}
-      <ellipse cx={cx}           cy={cy - r * 0.06} rx={r * 0.18} ry={r * 0.24} fill={d} opacity={0.97} />
-      <ellipse cx={cx + r * 0.09} cy={cy + r * 0.02} rx={r * 0.13} ry={r * 0.20} fill={d} opacity={0.90}
-        transform={`rotate(25,${cx + r * 0.09},${cy + r * 0.02})`} />
-      <ellipse cx={cx - r * 0.09} cy={cy + r * 0.02} rx={r * 0.13} ry={r * 0.20} fill={d} opacity={0.90}
-        transform={`rotate(-25,${cx - r * 0.09},${cy + r * 0.02})`} />
+      <Shadow cx={cx} cy={cy} r={r} />
+      <g transform={vt(cx, cy, variant)}>
+        <Calyx cx={cx} cy={cy} r={r} />
+        {outer}{mid}{inner}
+        <circle cx={cx} cy={cy - r * 0.06} r={r * 0.10} fill={d2} opacity={0.95} />
+      </g>
     </Mg>
   )
 }
 
-// ── Tulip: 3-petal cup ────────────────────────────────────────────────────────
-function BqTulip({ cx, cy, r, color, delay = 0 }) {
-  const d = dk(color)
+// ── Tulip: cup of 3 petals with vein lines ────────────────────────────────────
+function BqTulip({ cx, cy, r, color, delay = 0, variant = 0 }) {
+  const d = dk(color, 0.22)
   return (
     <Mg delay={delay}>
-      {shadow(cx, cy, r)}
+      <Shadow cx={cx} cy={cy} r={r} />
+      <g transform={vt(cx, cy, variant)}>
+      <Calyx cx={cx} cy={cy} r={r} />
+
       {/* left petal */}
       <ellipse cx={cx - r * 0.30} cy={cy} rx={r * 0.38} ry={r * 0.66}
         fill={color} opacity={0.88} transform={`rotate(-18,${cx - r * 0.30},${cy})`} />
+      <Vein x1={cx - r * 0.30} y1={cy + r * 0.30} x2={cx - r * 0.22} y2={cy - r * 0.40} color={d} opacity={0.30} />
+
       {/* right petal */}
       <ellipse cx={cx + r * 0.30} cy={cy} rx={r * 0.38} ry={r * 0.66}
         fill={color} opacity={0.88} transform={`rotate(18,${cx + r * 0.30},${cy})`} />
+      <Vein x1={cx + r * 0.30} y1={cy + r * 0.30} x2={cx + r * 0.22} y2={cy - r * 0.40} color={d} opacity={0.30} />
+
       {/* center petal (tallest, darker) */}
       <ellipse cx={cx} cy={cy - r * 0.06} rx={r * 0.36} ry={r * 0.72} fill={d} opacity={0.96} />
-      {/* base */}
-      <ellipse cx={cx} cy={cy + r * 0.52} rx={r * 0.24} ry={r * 0.16} fill={d} opacity={0.6} />
+      <Vein x1={cx} y1={cy + r * 0.40} x2={cx} y2={cy - r * 0.60} color={dk(color, 0.40)} opacity={0.25} />
+
+      {/* highlight on center petal */}
+      <ellipse cx={cx - r * 0.08} cy={cy - r * 0.20} rx={r * 0.10} ry={r * 0.28}
+        fill="rgba(255,255,255,0.18)" />
+      </g>
     </Mg>
   )
 }
 
-// ── Sunflower: long petals + big dark center ──────────────────────────────────
-function BqSunflower({ cx, cy, r, color, delay = 0 }) {
-  const pc = 16
+// ── Sunflower: many long petals + detailed seed disc ──────────────────────────
+function BqSunflower({ cx, cy, r, color, delay = 0, variant = 0 }) {
+  const d = dk(color, 0.16)
+  const pc = 18
+
   const petals = Array.from({ length: pc }, (_, i) => {
-    const a = (i / pc) * 2 * Math.PI
-    const d = r * 0.65
-    const px = cx + Math.cos(a) * d
-    const py = cy + Math.sin(a) * d
-    return <ellipse key={i} cx={px} cy={py} rx={r * 0.15} ry={r * 0.40}
-      fill={i % 2 === 0 ? color : dk(color, 0.14)} opacity={0.93}
-      transform={`rotate(${a * 180 / Math.PI + 90},${px},${py})`} />
+    const a   = (i / pc) * 2 * Math.PI
+    const dist = r * 0.66
+    const px  = cx + Math.cos(a) * dist
+    const py  = cy + Math.sin(a) * dist
+    const rot = a * 180 / Math.PI + 90
+    const vx2 = cx + Math.cos(a) * (dist - r * 0.20)
+    const vy2 = cy + Math.sin(a) * (dist - r * 0.20)
+    return (
+      <g key={i}>
+        <ellipse cx={px} cy={py} rx={r * 0.14} ry={r * 0.40}
+          fill={i % 2 === 0 ? color : d} opacity={0.93}
+          transform={`rotate(${rot},${px},${py})`} />
+        <Vein x1={px} y1={py} x2={vx2} y2={vy2} color={dk(color, 0.40)} opacity={0.22} />
+      </g>
+    )
   })
+
+  // Inner short petals (fill gaps between outer)
+  const inner = Array.from({ length: pc }, (_, i) => {
+    const a   = ((i + 0.5) / pc) * 2 * Math.PI
+    const dist = r * 0.50
+    const px  = cx + Math.cos(a) * dist
+    const py  = cy + Math.sin(a) * dist
+    const rot = a * 180 / Math.PI + 90
+    return <ellipse key={i} cx={px} cy={py} rx={r * 0.10} ry={r * 0.26}
+      fill={d} opacity={0.65} transform={`rotate(${rot},${px},${py})`} />
+  })
+
+  // Seed disc spiral pattern
+  const seeds = Array.from({ length: 24 }, (_, i) => {
+    const a  = (i / 24) * 2 * Math.PI * 2.618  // golden angle spiral
+    const rd = r * 0.10 + (i / 24) * r * 0.22
+    return (
+      <circle key={i}
+        cx={cx + Math.cos(a) * rd} cy={cy + Math.sin(a) * rd}
+        r={r * 0.038}
+        fill={i % 3 === 0 ? 'rgba(255,200,60,0.45)' : 'rgba(30,10,0,0.50)'} />
+    )
+  })
+
   return (
     <Mg delay={delay}>
-      {shadow(cx, cy, r)}
-      {petals}
-      <circle cx={cx} cy={cy} r={r * 0.36} fill="#2C1500" />
-      <circle cx={cx} cy={cy} r={r * 0.26} fill="#1A0A00" />
-      {Array.from({ length: 10 }, (_, i) => {
-        const a = (i / 10) * 2 * Math.PI
-        return <circle key={i} cx={cx + Math.cos(a) * r * 0.18} cy={cy + Math.sin(a) * r * 0.18}
-          r={r * 0.042} fill="rgba(255,200,60,0.40)" />
-      })}
-      <ellipse cx={cx - r * 0.07} cy={cy - r * 0.08} rx={r * 0.10} ry={r * 0.07}
-        fill="rgba(255,200,80,0.25)" />
+      <Shadow cx={cx} cy={cy} r={r} />
+      <g transform={vt(cx, cy, variant)}>
+        <Calyx cx={cx} cy={cy} r={r} />
+        {petals}
+        {inner}
+        {/* Disc */}
+        <circle cx={cx} cy={cy} r={r * 0.36} fill="#2C1800" />
+        <circle cx={cx} cy={cy} r={r * 0.34} fill="#221200" />
+        {seeds}
+        {/* Disc highlight */}
+        <ellipse cx={cx - r * 0.09} cy={cy - r * 0.10} rx={r * 0.09} ry={r * 0.06}
+          fill="rgba(255,200,80,0.22)" />
+      </g>
     </Mg>
   )
 }
 
-// ── Orchid: dorsal sepal + wing petals + labellum ─────────────────────────────
-function BqOrchid({ cx, cy, r, color, delay = 0 }) {
-  const d = dk(color)
+// ── Orchid: 5 distinct petals + labellum + integrated column ─────────────────
+function BqOrchid({ cx, cy, r, color, delay = 0, variant = 0 }) {
+  const d  = dk(color, 0.20)
+  const d2 = dk(color, 0.38)
+
   return (
     <Mg delay={delay}>
-      {shadow(cx, cy, r)}
-      {/* dorsal sepal (top) */}
-      <ellipse cx={cx} cy={cy - r * 0.54} rx={r * 0.28} ry={r * 0.48} fill={color} opacity={0.88} />
-      {/* wing petals */}
+      <Shadow cx={cx} cy={cy} r={r} />
+      <g transform={vt(cx, cy, variant)}>
+      <Calyx cx={cx} cy={cy} r={r} />
+      <ellipse cx={cx} cy={cy - r * 0.52} rx={r * 0.28} ry={r * 0.48}
+        fill={color} opacity={0.88} />
+      <Vein x1={cx} y1={cy - r * 0.20} x2={cx} y2={cy - r * 0.88} color={d2} opacity={0.25} />
+
+      {/* lateral petals (wide wings) */}
       <ellipse cx={cx - r * 0.52} cy={cy - r * 0.08} rx={r * 0.48} ry={r * 0.26}
         fill={color} opacity={0.84} transform={`rotate(-22,${cx - r * 0.52},${cy - r * 0.08})`} />
+      <Vein x1={cx - r * 0.12} y1={cy - r * 0.08} x2={cx - r * 0.80} y2={cy - r * 0.18}
+        color={d2} opacity={0.22} />
       <ellipse cx={cx + r * 0.52} cy={cy - r * 0.08} rx={r * 0.48} ry={r * 0.26}
         fill={color} opacity={0.84} transform={`rotate(22,${cx + r * 0.52},${cy - r * 0.08})`} />
-      {/* lateral sepals */}
-      <ellipse cx={cx - r * 0.40} cy={cy + r * 0.30} rx={r * 0.20} ry={r * 0.42}
-        fill={d} opacity={0.72} transform={`rotate(18,${cx - r * 0.40},${cy + r * 0.30})`} />
-      <ellipse cx={cx + r * 0.40} cy={cy + r * 0.30} rx={r * 0.20} ry={r * 0.42}
-        fill={d} opacity={0.72} transform={`rotate(-18,${cx + r * 0.40},${cy + r * 0.30})`} />
-      {/* labellum */}
-      <ellipse cx={cx} cy={cy + r * 0.30} rx={r * 0.40} ry={r * 0.44} fill={d} opacity={0.93} />
-      {/* column */}
-      <ellipse cx={cx} cy={cy} rx={r * 0.11} ry={r * 0.18} fill="rgba(255,255,255,0.68)" />
+      <Vein x1={cx + r * 0.12} y1={cy - r * 0.08} x2={cx + r * 0.80} y2={cy - r * 0.18}
+        color={d2} opacity={0.22} />
+
+      {/* lateral sepals (narrow, lower) */}
+      <ellipse cx={cx - r * 0.40} cy={cy + r * 0.30} rx={r * 0.20} ry={r * 0.44}
+        fill={d} opacity={0.74} transform={`rotate(18,${cx - r * 0.40},${cy + r * 0.30})`} />
+      <ellipse cx={cx + r * 0.40} cy={cy + r * 0.30} rx={r * 0.20} ry={r * 0.44}
+        fill={d} opacity={0.74} transform={`rotate(-18,${cx + r * 0.40},${cy + r * 0.30})`} />
+
+      {/* labellum — large lip at bottom, connects naturally */}
+      <ellipse cx={cx} cy={cy + r * 0.30} rx={r * 0.40} ry={r * 0.44} fill={d} opacity={0.94} />
+      {/* labellum markings */}
+      <ellipse cx={cx} cy={cy + r * 0.28} rx={r * 0.14} ry={r * 0.20}
+        fill={d2} opacity={0.50} />
+
+      {/* Column: sits inside labellum — fully connected, not floating */}
+      <ellipse cx={cx} cy={cy - r * 0.04} rx={r * 0.12} ry={r * 0.22}
+        fill="white" opacity={0.80} />
+      <ellipse cx={cx} cy={cy - r * 0.10} rx={r * 0.07} ry={r * 0.10}
+        fill={d2} opacity={0.60} />
+      </g>
     </Mg>
   )
 }
 
-// ── Cherry blossom / Lily: 5 round petals + stamens ──────────────────────────
-function BqCherry({ cx, cy, r, color, delay = 0 }) {
+// ── Cherry / Lily: 5 petals with notch, proper stamens ───────────────────────
+function BqCherry({ cx, cy, r, color, delay = 0, variant = 0 }) {
+  const d = dk(color, 0.22)
   return (
     <Mg delay={delay}>
-      {shadow(cx, cy, r)}
+      <Shadow cx={cx} cy={cy} r={r} />
+      <g transform={vt(cx, cy, variant)}>
+      <Calyx cx={cx} cy={cy} r={r} />
+
       {Array.from({ length: 5 }, (_, i) => {
-        const a = (i / 5) * 2 * Math.PI - Math.PI / 2
+        const a  = (i / 5) * 2 * Math.PI - Math.PI / 2
         const px = cx + Math.cos(a) * r * 0.44
         const py = cy + Math.sin(a) * r * 0.44
-        return <ellipse key={i} cx={px} cy={py} rx={r * 0.44} ry={r * 0.50}
-          fill={color} opacity={0.88}
-          transform={`rotate(${a * 180 / Math.PI},${px},${py})`} />
+        const vx2 = cx + Math.cos(a) * r * 0.80
+        const vy2 = cy + Math.sin(a) * r * 0.80
+        return (
+          <g key={i}>
+            <ellipse cx={px} cy={py} rx={r * 0.44} ry={r * 0.50}
+              fill={color} opacity={0.88}
+              transform={`rotate(${a * 180 / Math.PI},${px},${py})`} />
+            <Vein x1={px} y1={py} x2={vx2} y2={vy2} color={d} opacity={0.26} />
+          </g>
+        )
       })}
-      <circle cx={cx} cy={cy} r={r * 0.22} fill="#FFE566" />
-      <circle cx={cx} cy={cy} r={r * 0.13} fill="#FFAA00" />
-      {Array.from({ length: 6 }, (_, i) => {
-        const a = (i / 6) * 2 * Math.PI
-        return <line key={i} x1={cx} y1={cy}
-          x2={cx + Math.cos(a) * r * 0.30} y2={cy + Math.sin(a) * r * 0.30}
-          stroke="#FFB830" strokeWidth={1.2} />
+
+      {/* Main disc */}
+      <circle cx={cx} cy={cy} r={r * 0.22} fill="#FFF0A0" />
+      <circle cx={cx} cy={cy} r={r * 0.14} fill="#FFD700" />
+
+      {/* Stamens: short lines ending with a dot — fully connected to disc */}
+      {Array.from({ length: 8 }, (_, i) => {
+        const a  = (i / 8) * 2 * Math.PI
+        const sx = cx + Math.cos(a) * r * 0.14
+        const sy = cy + Math.sin(a) * r * 0.14
+        const ex = cx + Math.cos(a) * r * 0.28
+        const ey = cy + Math.sin(a) * r * 0.28
+        return (
+          <g key={i}>
+            <line x1={sx} y1={sy} x2={ex} y2={ey}
+              stroke="#C8860A" strokeWidth={0.9} opacity={0.80} />
+            <circle cx={ex} cy={ey} r={r * 0.028} fill="#E09010" />
+          </g>
+        )
       })}
+      </g>
     </Mg>
   )
 }
 
-// ── Peony: dense ball of overlapping petals ───────────────────────────────────
-function BqPeony({ cx, cy, r, color, delay = 0 }) {
-  const d = dk(color)
-  const petals = [
-    { dx:  0,        dy: -r * 0.28, rx: r * 0.40, ry: r * 0.55, rot:    0 },
-    { dx:  r * 0.30, dy: -r * 0.14, rx: r * 0.38, ry: r * 0.52, rot:   35 },
-    { dx:  r * 0.32, dy:  r * 0.20, rx: r * 0.38, ry: r * 0.50, rot:   70 },
-    { dx:  r * 0.10, dy:  r * 0.36, rx: r * 0.40, ry: r * 0.52, rot:   15 },
-    { dx: -r * 0.20, dy:  r * 0.32, rx: r * 0.38, ry: r * 0.50, rot:  -20 },
-    { dx: -r * 0.34, dy:  r * 0.12, rx: r * 0.38, ry: r * 0.50, rot:  -55 },
-    { dx: -r * 0.30, dy: -r * 0.20, rx: r * 0.38, ry: r * 0.52, rot:  -35 },
-    { dx:  0,        dy: -r * 0.14, rx: r * 0.28, ry: r * 0.40, rot:   10 },
-    { dx:  r * 0.18, dy:  r * 0.06, rx: r * 0.28, ry: r * 0.38, rot:   50 },
-    { dx: -r * 0.18, dy:  r * 0.10, rx: r * 0.28, ry: r * 0.38, rot:  -50 },
-    { dx:  0,        dy:  0,        rx: r * 0.20, ry: r * 0.26, rot:    0 },
+// ── Peony: dense rounded ball of layered petals ───────────────────────────────
+function BqPeony({ cx, cy, r, color, delay = 0, variant = 0 }) {
+  const d  = dk(color, 0.18)
+  const d2 = dk(color, 0.35)
+
+  const outerPetals = [
+    { dx:  0,        dy: -r * 0.30, rx: r * 0.40, ry: r * 0.52, rot:   0 },
+    { dx:  r * 0.32, dy: -r * 0.14, rx: r * 0.38, ry: r * 0.50, rot:  36 },
+    { dx:  r * 0.34, dy:  r * 0.20, rx: r * 0.38, ry: r * 0.48, rot:  72 },
+    { dx:  r * 0.12, dy:  r * 0.38, rx: r * 0.38, ry: r * 0.50, rot:  18 },
+    { dx: -r * 0.22, dy:  r * 0.34, rx: r * 0.38, ry: r * 0.48, rot: -22 },
+    { dx: -r * 0.36, dy:  r * 0.14, rx: r * 0.36, ry: r * 0.50, rot: -54 },
+    { dx: -r * 0.30, dy: -r * 0.22, rx: r * 0.38, ry: r * 0.50, rot: -36 },
   ]
+  const midPetals = [
+    { dx:  0,        dy: -r * 0.14, rx: r * 0.28, ry: r * 0.38, rot:  12 },
+    { dx:  r * 0.20, dy:  r * 0.08, rx: r * 0.26, ry: r * 0.36, rot:  52 },
+    { dx: -r * 0.18, dy:  r * 0.10, rx: r * 0.26, ry: r * 0.36, rot: -48 },
+    { dx:  r * 0.02, dy:  r * 0.20, rx: r * 0.24, ry: r * 0.32, rot:   8 },
+  ]
+
   return (
     <Mg delay={delay}>
-      {shadow(cx, cy, r)}
-      {petals.map((p, i) => (
+      <Shadow cx={cx} cy={cy} r={r} />
+      <g transform={vt(cx, cy, variant)}>
+      <Calyx cx={cx} cy={cy} r={r} />
+      {outerPetals.map((p, i) => (
+        <g key={i}>
+          <ellipse cx={cx + p.dx} cy={cy + p.dy} rx={p.rx} ry={p.ry}
+            fill={color} opacity={0.84}
+            transform={`rotate(${p.rot},${cx + p.dx},${cy + p.dy})`} />
+          {/* subtle vein on each outer petal */}
+          <Vein
+            x1={cx + p.dx * 0.3} y1={cy + p.dy * 0.3}
+            x2={cx + p.dx * 0.95} y2={cy + p.dy * 0.95}
+            color={d2} opacity={0.22} />
+        </g>
+      ))}
+      {midPetals.map((p, i) => (
         <ellipse key={i} cx={cx + p.dx} cy={cy + p.dy} rx={p.rx} ry={p.ry}
-          fill={i < 7 ? color : d} opacity={0.86 + i * 0.01}
+          fill={d} opacity={0.90}
           transform={`rotate(${p.rot},${cx + p.dx},${cy + p.dy})`} />
       ))}
+      {/* Center bud */}
+      <ellipse cx={cx} cy={cy} rx={r * 0.16} ry={r * 0.22} fill={d2} opacity={0.96} />
+      {/* Small stamens visible in center */}
+      {Array.from({ length: 5 }, (_, i) => {
+        const a  = (i / 5) * 2 * Math.PI
+        const ex = cx + Math.cos(a) * r * 0.10
+        const ey = cy + Math.sin(a) * r * 0.10
+        return <circle key={i} cx={ex} cy={ey} r={r * 0.025} fill="#FFE066" opacity={0.80} />
+      })}
+      </g>
     </Mg>
   )
 }
 
-// ── Lotus: pointed petals in 2 rings + golden center ─────────────────────────
-function BqLotus({ cx, cy, r, color, delay = 0 }) {
-  const d = dk(color)
-  const outer = Array.from({ length: 8 }, (_, i) => {
-    const a = (i / 8) * 2 * Math.PI
+// ── Lotus: two rings of pointed petals + golden center ───────────────────────
+function BqLotus({ cx, cy, r, color, delay = 0, variant = 0 }) {
+  const d  = dk(color, 0.20)
+  const d2 = dk(color, 0.38)
+
+  const outer = Array.from({ length: 9 }, (_, i) => {
+    const a  = (i / 9) * 2 * Math.PI
     const px = cx + Math.cos(a) * r * 0.60
     const py = cy + Math.sin(a) * r * 0.60
-    return <ellipse key={i} cx={px} cy={py} rx={r * 0.20} ry={r * 0.46}
-      fill={color} opacity={0.84}
-      transform={`rotate(${a * 180 / Math.PI + 90},${px},${py})`} />
+    const rot = a * 180 / Math.PI + 90
+    return (
+      <g key={i}>
+        <ellipse cx={px} cy={py} rx={r * 0.19} ry={r * 0.46}
+          fill={color} opacity={0.84} transform={`rotate(${rot},${px},${py})`} />
+        <Vein x1={px} y1={py} x2={cx + Math.cos(a) * r * 0.30} y2={cy + Math.sin(a) * r * 0.30}
+          color={d2} opacity={0.22} />
+      </g>
+    )
   })
+
   const mid = Array.from({ length: 6 }, (_, i) => {
-    const a = ((i + 0.5) / 6) * 2 * Math.PI - Math.PI / 6
+    const a  = ((i + 0.5) / 6) * 2 * Math.PI - Math.PI / 6
     const px = cx + Math.cos(a) * r * 0.34
     const py = cy + Math.sin(a) * r * 0.34
-    return <ellipse key={i} cx={px} cy={py} rx={r * 0.17} ry={r * 0.36}
-      fill={d} opacity={0.90}
-      transform={`rotate(${a * 180 / Math.PI + 90},${px},${py})`} />
+    const rot = a * 180 / Math.PI + 90
+    return <ellipse key={i} cx={px} cy={py} rx={r * 0.16} ry={r * 0.36}
+      fill={d} opacity={0.90} transform={`rotate(${rot},${px},${py})`} />
   })
+
   return (
     <Mg delay={delay}>
-      {shadow(cx, cy, r)}
+      <Shadow cx={cx} cy={cy} r={r} />
+      <g transform={vt(cx, cy, variant)}>
+      <Calyx cx={cx} cy={cy} r={r} />
       {outer}{mid}
-      <circle cx={cx} cy={cy} r={r * 0.22} fill="#FFE566" opacity={0.96} />
-      <circle cx={cx} cy={cy} r={r * 0.13} fill="#FFAA00" />
+      {/* Stigma receptacle */}
+      <circle cx={cx} cy={cy} r={r * 0.22} fill="#FFE566" />
+      <circle cx={cx} cy={cy} r={r * 0.14} fill="#FFBB00" />
+      {Array.from({ length: 8 }, (_, i) => {
+        const a = (i / 8) * 2 * Math.PI
+        return <circle key={i} cx={cx + Math.cos(a) * r * 0.09} cy={cy + Math.sin(a) * r * 0.09}
+          r={r * 0.028} fill="#CC8800" opacity={0.70} />
+      })}
+      </g>
     </Mg>
   )
 }
 
-// ── Small 5-petal (used for accent positions) ─────────────────────────────────
+// ── Small 5-petal accent ──────────────────────────────────────────────────────
 function BqSmall({ cx, cy, r, color, delay = 0 }) {
+  const d = dk(color, 0.20)
   return (
     <Mg delay={delay}>
+      <Calyx cx={cx} cy={cy} r={r} />
       {Array.from({ length: 5 }, (_, i) => {
-        const a = (i / 5) * 2 * Math.PI - Math.PI / 2
+        const a  = (i / 5) * 2 * Math.PI - Math.PI / 2
         const px = cx + Math.cos(a) * r * 0.44
         const py = cy + Math.sin(a) * r * 0.44
         return <ellipse key={i} cx={px} cy={py} rx={r * 0.44} ry={r * 0.36}
           fill={color} transform={`rotate(${a * 180 / Math.PI},${px},${py})`} />
       })}
-      <circle cx={cx} cy={cy} r={r * 0.32} fill="#FFE566" />
-      <circle cx={cx} cy={cy} r={r * 0.18} fill="#FFCC00" />
+      <circle cx={cx} cy={cy} r={r * 0.30} fill="#FFE566" />
+      <circle cx={cx} cy={cy} r={r * 0.16} fill="#FFCC00" />
+      {/* Small stamen dots */}
+      {Array.from({ length: 5 }, (_, i) => {
+        const a = (i / 5) * 2 * Math.PI
+        return <circle key={i} cx={cx + Math.cos(a) * r * 0.20} cy={cy + Math.sin(a) * r * 0.20}
+          r={r * 0.04} fill="#E09010" opacity={0.75} />
+      })}
     </Mg>
   )
 }
@@ -290,98 +488,284 @@ function BerrySpray({ cx, cy, r, color, delay = 0 }) {
 
 function Leaf({ x1, y1, length, angle, color = '#5E9B62', delay = 0 }) {
   const rad = angle * Math.PI / 180
-  const x2 = x1 + Math.cos(rad) * length
-  const y2 = y1 + Math.sin(rad) * length
-  const mx = (x1+x2)/2, my = (y1+y2)/2
-  const pr = rad + Math.PI/2
-  const w = length * 0.28
+  const x2  = x1 + Math.cos(rad) * length
+  const y2  = y1 + Math.sin(rad) * length
+  const mx  = (x1+x2)/2, my = (y1+y2)/2
+  const pr  = rad + Math.PI/2
+  const w   = length * 0.28
+  const vc  = dk(color, 0.28)
   return (
     <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay, duration: 0.6 }}>
       <path d={`M${x1} ${y1} Q${mx+Math.cos(pr)*w} ${my+Math.sin(pr)*w} ${x2} ${y2} Q${mx-Math.cos(pr)*w} ${my-Math.sin(pr)*w} ${x1} ${y1}Z`}
         fill={color} />
-      <path d={`M${x1} ${y1} L${x2} ${y2}`} stroke={dk(color, 0.25)} strokeWidth={1} opacity={0.55} />
+      {/* midrib vein */}
+      <path d={`M${x1} ${y1} L${x2} ${y2}`} stroke={vc} strokeWidth={0.9} opacity={0.55} />
+      {/* lateral veins */}
+      {[0.35, 0.55, 0.72].map((t, i) => {
+        const bx = x1 + (x2-x1)*t, by = y1 + (y2-y1)*t
+        const lx = bx + Math.cos(pr)*w*0.55, ly = by + Math.sin(pr)*w*0.55
+        const rx2 = bx - Math.cos(pr)*w*0.55, ry2 = by - Math.sin(pr)*w*0.55
+        return (
+          <g key={i}>
+            <line x1={bx} y1={by} x2={lx} y2={ly} stroke={vc} strokeWidth={0.7} opacity={0.40} />
+            <line x1={bx} y1={by} x2={rx2} y2={ry2} stroke={vc} strokeWidth={0.7} opacity={0.40} />
+          </g>
+        )
+      })}
     </motion.g>
   )
 }
 
-function Stems({ flowers, gatherX, gatherY }) {
+// ── Stems (thin lines above wrap zone) ───────────────────────────────────────
+function Stems({ flowers, gatherX, gatherY, wrapTopY }) {
   return (
     <g>
       {flowers.map((f, i) => (
-        <line key={i} x1={f.cx} y1={f.cy + (f.r || 12) * 0.8}
+        <line key={i}
+          x1={f.cx} y1={f.cy + (f.r || 12) * 0.85}
           x2={gatherX} y2={gatherY}
-          stroke="#4A8C58" strokeWidth={2.2} strokeLinecap="round" opacity={0.65} />
+          stroke="#4A8C58" strokeWidth={2.0} strokeLinecap="round" opacity={0.58} />
       ))}
-      {[0.18, 0.34, 0.50, 0.66, 0.80].map((t, i) => {
-        const y = gatherY + t * (CH - gatherY - 65) * 0.95
-        const spread = 13 - t * 7
-        return (
-          <line key={i}
-            x1={gatherX - spread} y1={y - 3 + i * 2}
-            x2={gatherX + spread} y2={y + 3 - i * 2}
-            stroke={i % 2 === 0 ? '#6BAA74' : '#4A8C58'}
-            strokeWidth={4} strokeLinecap="round" opacity={0.52} />
-        )
-      })}
     </g>
   )
 }
 
-function Bow({ cx, cy, delay = 1.8 }) {
-  const c = '#F4A261', dk2 = '#C77B35', lt = '#FFD49A'
-  const tail1 = `M${cx} ${cy} C${cx-18} ${cy+26} ${cx-28} ${cy+54} ${cx-22} ${cy+80}`
-  const tail2 = `M${cx} ${cy} C${cx+18} ${cy+26} ${cx+28} ${cy+54} ${cx+22} ${cy+80}`
-  const left  = `M${cx} ${cy} C${cx-48} ${cy-38} ${cx-78} ${cy-8} ${cx-52} ${cy+26} C${cx-28} ${cy+54} ${cx-8} ${cy+18} ${cx} ${cy}Z`
-  const right = `M${cx} ${cy} C${cx+48} ${cy-38} ${cx+78} ${cy-8} ${cx+52} ${cy+26} C${cx+28} ${cy+54} ${cx+8} ${cy+18} ${cx} ${cy}Z`
+// ═══════════════════════════════════════════════════════════════════════════
+// BOUQUET WRAP SYSTEM
+// part='back'  → renders BEFORE flowers (large cone sits behind them)
+// part='front' → renders AFTER flowers  (fold edge + bow, in front of lower flowers)
+// This creates the illusion the paper wraps around the whole bouquet (see ref img 2)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function Bow({ cx, cy, bowColor, bowDark, bowLight, delay = 1.8 }) {
+  const t1 = `M${cx} ${cy} C${cx-16} ${cy+24} ${cx-24} ${cy+50} ${cx-18} ${cy+72}`
+  const t2 = `M${cx} ${cy} C${cx+16} ${cy+24} ${cx+24} ${cy+50} ${cx+18} ${cy+72}`
+  const lp = `M${cx} ${cy} C${cx-44} ${cy-34} ${cx-72} ${cy-6} ${cx-48} ${cy+24} C${cx-26} ${cy+48} ${cx-8} ${cy+16} ${cx} ${cy}Z`
+  const rp = `M${cx} ${cy} C${cx+44} ${cy-34} ${cx+72} ${cy-6} ${cx+48} ${cy+24} C${cx+26} ${cy+48} ${cx+8} ${cy+16} ${cx} ${cy}Z`
   return (
     <motion.g {...SVG_ANIM}
-      transition={{ delay, duration: 0.6, type: 'spring', stiffness: 120, damping: 14 }}
+      transition={{ delay, duration: 0.6, type: 'spring', stiffness: 130, damping: 14 }}
       style={svgStyle}>
-      <path d={tail1} stroke="#CC4444" strokeWidth={7} strokeLinecap="round" fill="none" />
-      <path d={tail2} stroke="#44AA44" strokeWidth={7} strokeLinecap="round" fill="none" />
-      <path d={tail1} stroke="#FF7777" strokeWidth={3.5} strokeLinecap="round" fill="none" opacity={0.6} />
-      <path d={tail2} stroke="#66CC66" strokeWidth={3.5} strokeLinecap="round" fill="none" opacity={0.6} />
-      <path d={left}  fill={c} />
-      <path d={right} fill={c} />
-      <path d={`M${cx} ${cy} C${cx-30} ${cy-10} ${cx-52} ${cy+12} ${cx-38} ${cy+30} C${cx-22} ${cy+44} ${cx-6} ${cy+24} ${cx} ${cy}Z`}
-        fill={dk2} opacity={0.32} />
-      <path d={`M${cx} ${cy} C${cx+30} ${cy-10} ${cx+52} ${cy+12} ${cx+38} ${cy+30} C${cx+22} ${cy+44} ${cx+6} ${cy+24} ${cx} ${cy}Z`}
-        fill={dk2} opacity={0.32} />
-      <path d={`M${cx-44} ${cy-8} C${cx-38} ${cy-22} ${cx-20} ${cy-24} ${cx-8} ${cy-16}`}
-        stroke={lt} strokeWidth={3} fill="none" opacity={0.52} strokeLinecap="round" />
-      <path d={`M${cx+44} ${cy-8} C${cx+38} ${cy-22} ${cx+20} ${cy-24} ${cx+8} ${cy-16}`}
-        stroke={lt} strokeWidth={3} fill="none" opacity={0.52} strokeLinecap="round" />
-      <ellipse cx={cx} cy={cy} rx={10} ry={8} fill={c} />
-      <ellipse cx={cx} cy={cy} rx={10} ry={8} fill={dk2} opacity={0.28} />
+      <path d={t1} stroke={bowColor} strokeWidth={6.5} strokeLinecap="round" fill="none" />
+      <path d={t2} stroke={bowColor} strokeWidth={6.5} strokeLinecap="round" fill="none" />
+      <path d={t1} stroke={bowLight} strokeWidth={3}   strokeLinecap="round" fill="none" opacity={0.55} />
+      <path d={t2} stroke={bowLight} strokeWidth={3}   strokeLinecap="round" fill="none" opacity={0.55} />
+      <path d={lp} fill={bowColor} />
+      <path d={rp} fill={bowColor} />
+      <path d={`M${cx} ${cy} C${cx-26} ${cy-8} ${cx-46} ${cy+10} ${cx-34} ${cy+26} C${cx-20} ${cy+40} ${cx-6} ${cy+22} ${cx} ${cy}Z`}
+        fill={bowDark} opacity={0.30} />
+      <path d={`M${cx} ${cy} C${cx+26} ${cy-8} ${cx+46} ${cy+10} ${cx+34} ${cy+26} C${cx+20} ${cy+40} ${cx+6} ${cy+22} ${cx} ${cy}Z`}
+        fill={bowDark} opacity={0.30} />
+      <path d={`M${cx-38} ${cy-6} C${cx-32} ${cy-18} ${cx-16} ${cy-20} ${cx-6} ${cy-13}`}
+        stroke={bowLight} strokeWidth={2.5} fill="none" opacity={0.48} strokeLinecap="round" />
+      <path d={`M${cx+38} ${cy-6} C${cx+32} ${cy-18} ${cx+16} ${cy-20} ${cx+6} ${cy-13}`}
+        stroke={bowLight} strokeWidth={2.5} fill="none" opacity={0.48} strokeLinecap="round" />
+      <ellipse cx={cx} cy={cy} rx={9} ry={7} fill={bowColor} />
     </motion.g>
   )
 }
 
+// Paper cone geometry helper
+// bTopY = back panel top (high, behind flowers)
+// fTopY = front fold top (lower, only covers foreground)
+// bottY = paper bottom neck
+// bHW = back half-width, nHW = neck half-width
+function coneGeom(bX, bTopY, fTopY, bottY, bHW, nHW) {
+  // front half-width interpolated from back at fTopY level
+  const t   = (fTopY - bTopY) / (bottY - bTopY)
+  const fHW = bHW * (1 - t) + nHW * t
+  return {
+    back:  `M${bX-bHW} ${bTopY} Q${bX} ${bTopY-20} ${bX+bHW} ${bTopY} L${bX+nHW+5} ${bottY} L${bX-nHW-5} ${bottY} Z`,
+    front: `M${bX-fHW-4} ${fTopY} Q${bX} ${fTopY-12} ${bX+fHW+4} ${fTopY} L${bX+nHW} ${bottY} L${bX-nHW} ${bottY} Z`,
+    fTopY, fHW,
+  }
+}
+
+// ── Style 0: Classic — ribbon cross-bands, no paper (back=null)  ─────────────
+function WrapClassic({ gatherX, gatherY, CH, delay, part }) {
+  const bY = gatherY + (CH - gatherY) * 0.20
+  if (part === 'back') return null
+  return (
+    <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+      transition={{ delay, duration: 0.5 }}>
+      {[0, 0.22, 0.44, 0.66, 0.86].map((t, i) => {
+        const y  = gatherY + t * (bY - gatherY)
+        const sp = 14 - t * 8
+        return (
+          <line key={i}
+            x1={gatherX - sp} y1={y - 4 + i*2}
+            x2={gatherX + sp} y2={y + 4 - i*2}
+            stroke={i % 2 ? '#4A8C58' : '#6BAA74'}
+            strokeWidth={5} strokeLinecap="round" opacity={0.55} />
+        )
+      })}
+      <Bow cx={gatherX} cy={bY}
+        bowColor="#F4A261" bowDark="#C77B35" bowLight="#FFD49A" delay={delay} />
+    </motion.g>
+  )
+}
+
+// ── Style 1: Kraft paper cone ─────────────────────────────────────────────────
+function WrapKraft({ gatherX, gatherY, CH, delay, part }) {
+  const bX    = gatherX
+  const bTopY = 175, fTopY = 248, bottY = 400, nHW = 20
+  const geom  = coneGeom(bX, bTopY, fTopY, bottY, 116, nHW)
+  const paper = '#C9965A', shade = '#A87840', hi = '#E8C07A'
+  const bowY  = bottY - 18
+
+  if (part === 'back') {
+    return (
+      <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        transition={{ delay: delay * 0.4, duration: 0.8 }}>
+        <path d={geom.back} fill="rgba(0,0,0,0.06)" transform="translate(4,6)" />
+        <path d={geom.back} fill={shade} opacity={0.94} />
+      </motion.g>
+    )
+  }
+  const fHW = geom.fHW
+  return (
+    <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+      transition={{ delay, duration: 0.5 }}>
+      <path d={geom.front} fill={paper} />
+      {/* crease lines */}
+      {[-54,-28,0,28,54].map((off,i) => (
+        <line key={i}
+          x1={bX+off*((fHW)/60)} y1={fTopY+8} x2={bX+off*0.20} y2={bottY-10}
+          stroke={shade} strokeWidth={1} opacity={0.26} />
+      ))}
+      {/* fold highlight arc */}
+      <path d={`M${bX-fHW-4} ${fTopY} Q${bX} ${fTopY-12} ${bX+fHW+4} ${fTopY}`}
+        stroke={hi} strokeWidth={4} fill="none" opacity={0.65} strokeLinecap="round" />
+      <ellipse cx={bX} cy={bowY} rx={nHW} ry={6} fill={shade} />
+      <Bow cx={bX} cy={bowY}
+        bowColor="#8B6914" bowDark="#5A4008" bowLight="#D4A830" delay={delay} />
+    </motion.g>
+  )
+}
+
+// ── Style 2: Romantic pink ruffled paper ─────────────────────────────────────
+function WrapRomantic({ gatherX, gatherY, CH, delay, part }) {
+  const bX    = gatherX
+  const bTopY = 170, fTopY = 245, bottY = 402, nHW = 20
+  const geom  = coneGeom(bX, bTopY, fTopY, bottY, 120, nHW)
+  const pBack = '#F093AA', pFront = '#FFB7C5', pHi = '#FFD6E0'
+  const bowY  = bottY - 18
+  const fHW   = geom.fHW
+
+  if (part === 'back') {
+    return (
+      <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        transition={{ delay: delay * 0.4, duration: 0.8 }}>
+        <path d={geom.back} fill="rgba(0,0,0,0.05)" transform="translate(4,6)" />
+        <path d={geom.back} fill={pBack} opacity={0.89} />
+      </motion.g>
+    )
+  }
+  const ruffles = Array.from({ length: 9 }, (_, i) => ({
+    x: bX - fHW + i * (fHW * 2 / 8),
+    y: fTopY + (i % 2 === 0 ? 0 : -9),
+  }))
+  return (
+    <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+      transition={{ delay, duration: 0.5 }}>
+      <path d={geom.front} fill={pFront} />
+      {ruffles.map((p, i) => (
+        <circle key={i} cx={p.x} cy={p.y} r={7}
+          fill={i % 2 ? pFront : pHi} opacity={0.72} />
+      ))}
+      {[-48,-24,0,24,48].map((off,i) => (
+        <line key={i}
+          x1={bX+off*(fHW/60)} y1={fTopY+10} x2={bX+off*0.20} y2={bottY-10}
+          stroke={pBack} strokeWidth={1.2} opacity={0.28} />
+      ))}
+      <path d={`M${bX-fHW-4} ${fTopY} Q${bX} ${fTopY-12} ${bX+fHW+4} ${fTopY}`}
+        stroke={pHi} strokeWidth={4} fill="none" opacity={0.72} strokeLinecap="round" />
+      <ellipse cx={bX} cy={bowY} rx={nHW} ry={6} fill={pBack} opacity={0.88} />
+      <Bow cx={bX} cy={bowY}
+        bowColor="#FF7EB6" bowDark="#CC4488" bowLight="#FFD0E8" delay={delay} />
+    </motion.g>
+  )
+}
+
+// ── Style 3: Elegant dark paper + gold bow ───────────────────────────────────
+function WrapElegant({ gatherX, gatherY, CH, delay, part }) {
+  const bX    = gatherX
+  const bTopY = 173, fTopY = 246, bottY = 398, nHW = 20
+  const geom  = coneGeom(bX, bTopY, fTopY, bottY, 115, nHW)
+  const dark  = '#1C3D28', shade = '#142D1E', gold = '#D4A830'
+  const bowY  = bottY - 18
+  const fHW   = geom.fHW
+
+  if (part === 'back') {
+    return (
+      <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        transition={{ delay: delay * 0.4, duration: 0.8 }}>
+        <path d={geom.back} fill="rgba(0,0,0,0.09)" transform="translate(4,6)" />
+        <path d={geom.back} fill={shade} />
+      </motion.g>
+    )
+  }
+  return (
+    <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+      transition={{ delay, duration: 0.5 }}>
+      <path d={geom.front} fill={dark} />
+      <path d={`M${bX-fHW-4} ${fTopY} Q${bX} ${fTopY-12} ${bX+fHW+4} ${fTopY}`}
+        stroke={gold} strokeWidth={2} fill="none" opacity={0.78} />
+      {[-48,-24,0,24,48].map((off,i) => (
+        <line key={i}
+          x1={bX+off*(fHW/60)} y1={fTopY+10} x2={bX+off*0.20} y2={bottY-10}
+          stroke={gold} strokeWidth={0.9} opacity={0.20} />
+      ))}
+      <ellipse cx={bX} cy={bowY} rx={nHW} ry={6} fill={shade} />
+      <ellipse cx={bX} cy={bowY} rx={nHW} ry={6} stroke={gold} strokeWidth={1.5} fill="none" opacity={0.80} />
+      <Bow cx={bX} cy={bowY}
+        bowColor={gold} bowDark="#8B6914" bowLight="#F4D580" delay={delay} />
+    </motion.g>
+  )
+}
+// Dispatcher
+const WRAP_STYLES = [WrapClassic, WrapKraft, WrapRomantic, WrapElegant]
+
+
+
 // ══════════════════════════════════════════════════════════════════════════════
-// LAYOUT — bouquet dome positions (SVG coords on 340×440 canvas)
+// LAYOUT
 // ══════════════════════════════════════════════════════════════════════════════
-// Main flower positions (back → front via order)
+// variant: 0=front  1=lean-L  2=top  3=lean-R  4=side
+// Ordered BACK→FRONT so SVG paint order creates natural occlusion.
 const FLOWER_POSITIONS = [
-  { cx: 170, cy:  68, r: 33, delay: 0.10 },
-  { cx:  98, cy:  92, r: 29, delay: 0.15 },
-  { cx: 242, cy:  86, r: 29, delay: 0.18 },
-  { cx:  50, cy: 112, r: 26, delay: 0.08 },
-  { cx: 280, cy: 106, r: 24, delay: 0.12 },
-  { cx:  72, cy: 158, r: 32, delay: 0.25 },
-  { cx: 252, cy: 150, r: 31, delay: 0.28 },
-  { cx: 162, cy: 140, r: 36, delay: 0.22 },
-  { cx: 122, cy: 190, r: 27, delay: 0.30 },
-  { cx: 214, cy: 182, r: 25, delay: 0.33 },
-  { cx: 102, cy: 224, r: 36, delay: 0.42 },
-  { cx: 238, cy: 216, r: 34, delay: 0.45 },
-  { cx: 168, cy: 242, r: 40, delay: 0.38 },
+  // ── layer 0: deepest back (smallest, top of dome) ──────────────────────────
+  { cx: 170, cy:  55, r: 28, delay: 0.08, variant: 2 },  // apex top-center
+  { cx: 110, cy:  72, r: 25, delay: 0.11, variant: 1 },  // apex left
+  { cx: 228, cy:  66, r: 25, delay: 0.14, variant: 3 },  // apex right
+  { cx:  58, cy:  90, r: 21, delay: 0.06, variant: 4 },  // far-left side
+  { cx: 278, cy:  84, r: 20, delay: 0.09, variant: 4 },  // far-right side
+  // ── layer 1: mid-back ──────────────────────────────────────────────────────
+  { cx: 168, cy: 112, r: 32, delay: 0.18, variant: 2 },  // mid-back center
+  { cx:  98, cy: 118, r: 29, delay: 0.22, variant: 1 },  // mid-back left
+  { cx: 240, cy: 112, r: 29, delay: 0.25, variant: 3 },  // mid-back right
+  // ── layer 2: mid ───────────────────────────────────────────────────────────
+  { cx:  66, cy: 158, r: 32, delay: 0.30, variant: 1 },  // mid-left
+  { cx: 258, cy: 151, r: 31, delay: 0.33, variant: 3 },  // mid-right
+  { cx: 162, cy: 146, r: 36, delay: 0.28, variant: 2 },  // mid-center
+  // ── layer 3: mid-front ─────────────────────────────────────────────────────
+  { cx: 114, cy: 196, r: 34, delay: 0.38, variant: 1 },  // mid-front left
+  { cx: 218, cy: 190, r: 33, delay: 0.40, variant: 3 },  // mid-front right
+  { cx: 166, cy: 189, r: 37, delay: 0.36, variant: 0 },  // mid-front center
+  // ── layer 4: foreground (largest, fully visible) ────────────────────────────
+  { cx:  92, cy: 235, r: 38, delay: 0.50, variant: 0 },  // front left
+  { cx: 244, cy: 228, r: 37, delay: 0.52, variant: 0 },  // front right
+  { cx: 168, cy: 250, r: 43, delay: 0.46, variant: 0 },  // front center (hero)
 ]
 const SMALL_POSITIONS = [
-  { cx:  32, cy: 158, r: 14, delay: 0.20 },
-  { cx: 302, cy: 164, r: 13, delay: 0.22 },
-  { cx: 148, cy:  30, r: 13, delay: 0.06 },
-  { cx:  60, cy:  52, r: 11, delay: 0.04 },
-  { cx: 268, cy:  56, r: 11, delay: 0.05 },
+  { cx:  28, cy: 150, r: 13, delay: 0.20 },  // far-left accent
+  { cx: 306, cy: 157, r: 12, delay: 0.22 },  // far-right accent
+  { cx: 146, cy:  28, r: 12, delay: 0.05 },  // top-center accent
+  { cx:  62, cy:  48, r: 10, delay: 0.04 },  // top-left accent
+  { cx: 270, cy:  44, r: 10, delay: 0.05 },  // top-right accent
+  { cx:  40, cy: 205, r: 11, delay: 0.35 },  // lower-left accent
+  { cx: 295, cy: 198, r: 10, delay: 0.36 },  // lower-right accent
+  { cx: 132, cy:  50, r: 9,  delay: 0.06 },  // inner-top-left
 ]
 const BERRY_POSITIONS = [
   { cx:  34, cy: 106, r: 7.5, colorIdx: 0, delay: 0.07 },
@@ -410,7 +794,6 @@ const GATHER_X = CW / 2, GATHER_Y = 308
 export default function BouquetDisplay({ selectedFlowers }) {
   const count = selectedFlowers?.length || 0
 
-  // Build a stable list of { svgType, colorHex } from user's selection
   const flowerTypes = useMemo(() => {
     if (!count) return DEFAULT_TYPES.map((t, i) => ({ svgType: t, colorHex: DEFAULT_COLORS[i] }))
     return selectedFlowers.map(sf => {
@@ -419,7 +802,6 @@ export default function BouquetDisplay({ selectedFlowers }) {
     })
   }, [selectedFlowers, count])
 
-  // Assign types & colors to main positions by cycling through selected flowers
   const mainFlowers = useMemo(() =>
     FLOWER_POSITIONS.map((pos, i) => {
       const ft = flowerTypes[i % flowerTypes.length]
@@ -427,7 +809,6 @@ export default function BouquetDisplay({ selectedFlowers }) {
     })
   , [flowerTypes])
 
-  // Small accent positions use smallest/lightest flower from selection
   const smallFlowers = useMemo(() =>
     SMALL_POSITIONS.map((pos, i) => {
       const ft = flowerTypes[i % flowerTypes.length]
@@ -435,20 +816,27 @@ export default function BouquetDisplay({ selectedFlowers }) {
     })
   , [flowerTypes])
 
-  // Berry colors follow selection
   const berryColors = useMemo(() =>
     BERRY_POSITIONS.map(b => ({ ...b, color: flowerTypes[b.colorIdx % flowerTypes.length].colorHex }))
   , [flowerTypes])
 
-  // Sparkles
+  // Pick wrap style from selection hash or random on first render
+  const wrapStyle = useMemo(() => {
+    const seed = (selectedFlowers?.length || 0) + (selectedFlowers?.[0]?.flowerId?.charCodeAt(0) || 0)
+    return seed % WRAP_STYLES.length
+  }, [selectedFlowers])
+
+  const WrapComponent = WRAP_STYLES[wrapStyle]
+  const WRAP_TOP_Y = 282   // where paper wrap top edge sits (just below flowers)
+
   const SPARKS = useMemo(() => Array.from({ length: 8 }, (_, i) => ({
     id: i,
-    left: `${10 + (i * 19) % 78}%`,
-    top:  `${8  + (i * 13) % 74}%`,
-    size: 3 + i % 3,
+    left:  `${10 + (i * 19) % 78}%`,
+    top:   `${8  + (i * 13) % 74}%`,
+    size:  3 + i % 3,
     color: flowerTypes[i % flowerTypes.length].colorHex,
-    dur: 2.5 + i * 0.3,
-    dly: i * 0.45,
+    dur:   2.5 + i * 0.3,
+    dly:   i * 0.45,
   })), [flowerTypes])
 
   return (
@@ -472,34 +860,33 @@ export default function BouquetDisplay({ selectedFlowers }) {
         <svg width={CW} height={CH} viewBox={`0 0 ${CW} ${CH}`}
           style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
 
-          {/* Stems */}
+          {/* ── WRAP BACK (paper behind flowers) ── */}
+          <WrapComponent part="back"
+            gatherX={GATHER_X} gatherY={GATHER_Y} CH={CH} delay={1.4} />
+
           <Stems flowers={[...mainFlowers, ...smallFlowers]} gatherX={GATHER_X} gatherY={GATHER_Y} />
 
-          {/* Leaves */}
           {LEAF_DEFS.map((l, i) => (
             <Leaf key={i} {...l}
               color={i % 3 === 0 ? '#5E9B62' : i % 3 === 1 ? '#7CBF80' : '#4A7D50'} />
           ))}
 
-          {/* Berries */}
           {berryColors.map((b, i) => <BerrySpray key={i} {...b} />)}
 
-          {/* Small accent flowers */}
           {smallFlowers.map((f, i) => (
             <BqSmall key={i} cx={f.cx} cy={f.cy} r={f.r} color={f.colorHex} delay={f.delay} />
           ))}
 
-          {/* Main flowers — back to front */}
           {mainFlowers.map((f, i) => {
             const R = RENDERERS[f.svgType] || RENDERERS.rose
-            return <R key={i} cx={f.cx} cy={f.cy} r={f.r} color={f.colorHex} delay={f.delay} />
+            return <R key={i} cx={f.cx} cy={f.cy} r={f.r} color={f.colorHex} delay={f.delay} variant={f.variant} />
           })}
 
-          {/* Bow */}
-          <Bow cx={GATHER_X} cy={GATHER_Y + 42} delay={1.8} />
+          {/* ── WRAP FRONT (fold edge + bow, in front of lower flowers) ── */}
+          <WrapComponent part="front"
+            gatherX={GATHER_X} gatherY={GATHER_Y} CH={CH} delay={1.6} />
         </svg>
 
-        {/* Sparkles */}
         {SPARKS.map(s => (
           <motion.div key={s.id} className="absolute rounded-full pointer-events-none"
             style={{ width: s.size, height: s.size, background: s.color,
