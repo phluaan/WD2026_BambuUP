@@ -227,8 +227,9 @@ export default function IntroScreen({ onComplete }) {
     {
       id: "seed",
       texts: [
-        "Mỗi thành công của BambuUP",
-        "đều có dấu ấn của những người phụ nữ tuyệt vời.",
+        "“Chị em tôi toả nắng vàng lịch sử",
+        "Nắng cho đời, nắng cũng cho thơ.”",
+        "Huy Cận",
       ],
       action: "Tiếp tục",
     },
@@ -236,7 +237,7 @@ export default function IntroScreen({ onComplete }) {
       id: "bloom",
       texts: [
         "Chúc mừng ngày 8/3 —",
-        "Cảm ơn vì tất cả những gì các bạn đã làm! 🌸",
+        "Cảm ơn vì những đóng góp của bạn với BambuUP! 🌸",
       ],
       action: "Bắt đầu",
     },

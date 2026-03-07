@@ -415,10 +415,14 @@ export default function GardenScene({ onFinale }) {
                 transition={{ delay: 1.4, duration: 1 }}
               >
                 <h3
-                  className="text-3xl md:text-4xl mb-6"
+                  className="text-4xl md:text-5xl mb-6"
                   style={{
-                    fontFamily: '"Playfair Display", serif',
+                    fontFamily: '"Cormorant Garamond", serif',
+                    fontWeight: 500,
+                    fontStyle: 'italic',
                     color: "#BE185D",
+                    letterSpacing: '0.01em',
+                    lineHeight: 1.2,
                   }}
                 >
                   {msg.greeting}
@@ -428,11 +432,17 @@ export default function GardenScene({ onFinale }) {
                   {msg.paragraphs.map((para, i) => (
                     <motion.p
                       key={i}
-                      className={`leading-relaxed text-sm md:text-base ${
+                      className={`leading-relaxed text-base md:text-lg ${
                         i === msg.paragraphs.length - 1
-                          ? "text-gray-400 italic"
-                          : "text-gray-700"
+                          ? "italic"
+                          : ""
                       }`}
+                      style={{
+                        fontFamily: '"Cormorant Garamond", serif',
+                        fontWeight: i === msg.paragraphs.length - 1 ? 300 : 400,
+                        color: i === msg.paragraphs.length - 1 ? '#9ca3af' : '#374151',
+                        lineHeight: 1.75,
+                      }}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 1.6 + i * 0.28, duration: 0.7 }}
@@ -443,8 +453,13 @@ export default function GardenScene({ onFinale }) {
                 </div>
 
                 <motion.p
-                  className="text-xl font-semibold tracking-wide"
-                  style={{ color: accentColor }}
+                  className="text-2xl md:text-3xl font-semibold tracking-wide"
+                  style={{
+                    fontFamily: '"Cormorant Garamond", serif',
+                    fontWeight: 600,
+                    color: accentColor,
+                    letterSpacing: '0.02em',
+                  }}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 2.8, duration: 0.8 }}
