@@ -8,6 +8,18 @@ const _LEAF_D = 'M0 0 C-4.5 -3 -4 -9 0 -12 C4 -9 4.5 -3 0 0'
 const _VEIN_D = 'M0 -1 L0 -10'
 const _SC     = '#2d6a4f'
 
+// Helper: darken a hex color roughly
+const dk = (hex, amt = 0.2) => {
+  if (!hex || hex[0] !== '#') return hex
+  let r = parseInt(hex.slice(1,3), 16)
+  let g = parseInt(hex.slice(3,5), 16)
+  let b = parseInt(hex.slice(5,7), 16)
+  r = Math.max(0, Math.floor(r * (1 - amt)))
+  g = Math.max(0, Math.floor(g * (1 - amt)))
+  b = Math.max(0, Math.floor(b * (1 - amt)))
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`
+}
+
 function LeafNode({ x, y, rot, sz, fill, delay }) {
   return (
     <g transform={`translate(${x},${y}) rotate(${rot})`}>
@@ -623,14 +635,10 @@ export const FLOWER_SVGS = {
       <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"
         style={{ filter: 'drop-shadow(1px 3px 6px rgba(0,0,0,0.22))' }}>
         <defs>
-          <linearGradient id={`ltG${id}`} x1="0%" y1="100%" x2="0%" y2="0%">
-            <stop offset="0%"   stopColor="#fff"  stopOpacity="0.88" />
-            <stop offset="50%"  stopColor={s}      stopOpacity="0.88" />
-            <stop offset="100%" stopColor={c}      stopOpacity="1" />
-          </linearGradient>
-          <linearGradient id={`ltI${id}`} x1="0%" y1="100%" x2="0%" y2="0%">
-            <stop offset="0%"   stopColor="#fff"  stopOpacity="0.92" />
-            <stop offset="100%" stopColor={c}      stopOpacity="0.88" />
+          <linearGradient id={`ltP${id}`} x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%"   stopColor="#ffffff" stopOpacity={c === '#e4f5ef' ? "0.9" : "0.5"} />
+            <stop offset="60%"  stopColor={s} />
+            <stop offset="100%" stopColor={c} />
           </linearGradient>
           <radialGradient id={`ltPad${id}`} cx="50%" cy="30%" r="70%">
             <stop offset="0%"   stopColor="#4ade80" />
@@ -642,60 +650,229 @@ export const FLOWER_SVGS = {
         {/* Lily pad */}
         <path d="M50 66 Q30 70 22 63 Q38 66 50 66" fill={`url(#ltPad${id})`} stroke={dark} strokeWidth="0.8" opacity="0.88"/>
         <path d="M50 66 Q70 70 78 63 Q62 66 50 66" fill={`url(#ltPad${id})`} stroke={dark} strokeWidth="0.8" opacity="0.82"/>
-        {/* Pad vein */}
-        <path d="M50 66 Q36 66 24 63" stroke="#fff" strokeWidth="0.7" fill="none" opacity="0.4"/>
-        <path d="M50 66 Q64 66 76 63" stroke="#fff" strokeWidth="0.7" fill="none" opacity="0.4"/>
 
         {/* Watercolor wash */}
-        <ellipse cx="50" cy="46" rx="24" ry="28" fill={c} opacity="0.11" style={{ filter: 'blur(8px)' }} />
+        <circle cx="50" cy="46" r="28" fill={c} opacity="0.12" style={{ filter: 'blur(9px)' }} />
 
-        {/* Outermost wide petals — 5, slightly open at base */}
-        {[-40, -18, 0, 18, 40].map((deg, i) => (
+        {/* Background/Outer wide petals (spread out) */}
+        {[-65, -35, 35, 65].map((deg, i) => (
           <motion.path key={`ltB${i}`}
-            d="M50 66 Q36 48 50 20 Q64 48 50 66"
-            fill={`url(#ltG${id})`} stroke={dark} strokeWidth="0.9" strokeOpacity="0.32"
+            d={`M50 66 C${38} ${55} ${32} ${30} 50 ${12} C${68} ${30} ${62} ${55} 50 66 Z`}
+            fill={`url(#ltP${id})`} stroke={dark} strokeWidth="0.6" strokeOpacity="0.25"
             style={{ transformOrigin: '50px 66px', rotate: `${deg}deg` }}
-            animate={{ scaleY: bloom ? 1.14 : 0.94, scaleX: bloom ? 1.06 : 1 }}
-            transition={{ duration: 0.62, delay: i * 0.05 }}
+            animate={{ scaleY: bloom ? 1.05 : 0.85, scaleX: bloom ? 1.1 : 0.9 }}
+            transition={{ duration: 0.65, delay: i * 0.05 }}
           />
         ))}
 
-        {/* Mid petals — taller, more upright */}
-        {[-26, 0, 26].map((deg, i) => (
+        {/* Mid-layer petals (overlap) */}
+        {[-45, -20, 20, 45].map((deg, i) => (
           <motion.path key={`ltM${i}`}
-            d="M50 66 Q35 44 50 14 Q65 44 50 66"
-            fill={s} stroke={dark} strokeWidth="0.9" strokeOpacity="0.38"
+            d={`M50 66 C${40} ${55} ${35} ${25} 50 ${8} C${65} ${25} ${60} ${55} 50 66 Z`}
+            fill={`url(#ltP${id})`} stroke={dark} strokeWidth="0.7" strokeOpacity="0.3"
             style={{ transformOrigin: '50px 66px', rotate: `${deg}deg` }}
-            animate={{ scaleY: bloom ? 1.20 : 1.02 }}
-            transition={{ duration: 0.65, delay: 0.1 + i * 0.06 }}
+            animate={{ scaleY: bloom ? 1.02 : 0.88, scaleX: bloom ? 1.0 : 0.85 }}
+            transition={{ duration: 0.6, delay: 0.1 + i * 0.05 }}
           />
         ))}
 
-        {/* Inner petal — the frontal showpiece */}
-        <motion.path
-          d="M50 66 Q42 52 50 36 Q58 52 50 66"
-          fill={`url(#ltI${id})`} stroke={dark} strokeWidth="0.9" strokeOpacity="0.42"
-          animate={{ scaleY: bloom ? 1.12 : 0.96 }}
-          transition={{ duration: 0.55, delay: 0.22 }}
-        />
+        {/* Inner frontal petals (stand tall) */}
+        {[-12, 0, 12].map((deg, i) => (
+          <motion.path key={`ltI${i}`}
+            d={`M50 66 C${42} ${48} ${38} ${22} 50 ${6} C${62} ${22} ${58} ${48} 50 66 Z`}
+            fill={`url(#ltP${id})`} stroke={dark} strokeWidth="0.8" strokeOpacity="0.4"
+            style={{ transformOrigin: '50px 66px', rotate: `${deg}deg` }}
+            animate={{ scaleY: bloom ? 1.0 : 0.9 }}
+            transition={{ duration: 0.55, delay: 0.2 + i * 0.05 }}
+          />
+        ))}
 
-        {/* Receptacle center */}
-        <ellipse cx="50" cy="40" rx="8" ry="7" fill="#fde68a" stroke={dark} strokeWidth="1" />
-        <ellipse cx="50" cy="40" rx="5" ry="4" fill="#f59e0b" opacity="0.7" />
-        {/* Seed holes pattern */}
+        {/* Receptacle center (Yellow pod) */}
+        <motion.ellipse cx="50" cy="48" rx={bloom ? 10 : 7} ry={bloom ? 6 : 4} fill="#fde047" stroke="#ca8a04" strokeWidth="0.8"
+          animate={{ ry: bloom ? 6 : 4, rx: bloom ? 10 : 7 }} transition={{ duration: 0.5 }} />
+        <motion.ellipse cx="50" cy="47" rx={bloom ? 8 : 5} ry={bloom ? 4 : 2} fill="#eab308"
+          animate={{ ry: bloom ? 4 : 2, rx: bloom ? 8 : 5 }} transition={{ duration: 0.5 }} />
+          
+        {/* Seed holes in receptacle */}
         {Array.from({ length: 9 }).map((_, i) => {
           const a = i * 40 * Math.PI / 180
-          const rd = i < 5 ? 3.8 : 1.6
-          return <circle key={`ltSd${i}`} cx={50+Math.cos(a)*rd} cy={40+Math.sin(a)*rd} r="1.1" fill={dark} opacity="0.55" />
+          const rd = i < 5 ? 4.5 : 2
+          return <circle key={`ltSd${i}`} cx={50+Math.cos(a)*rd} cy={47+Math.sin(a)*rd*0.6} r="1.3" fill="#854d0e" opacity="0.65" />
         })}
 
-        {/* Center highlight vein */}
-        <path d="M50 66 Q49 52 50 38" stroke="#fff" strokeWidth="1.2" fill="none" strokeOpacity="0.52" strokeLinecap="round" />
-        {/* Side petal veins */}
-        <path d="M50 66 Q40 52 38 38" stroke="#fff" strokeWidth="0.8" fill="none" strokeOpacity="0.35" strokeLinecap="round"
-          style={{ transformOrigin: '50px 66px' }} />
-        <path d="M50 66 Q60 52 62 38" stroke="#fff" strokeWidth="0.8" fill="none" strokeOpacity="0.35" strokeLinecap="round"
-          style={{ transformOrigin: '50px 66px', transform: 'scaleX(-1) translateX(-100px)' }} />
+        {/* Delicate Stamens around the pod */}
+        {Array.from({ length: 16 }).map((_, i) => {
+          const a = (i * 360 / 16) * Math.PI / 180
+          const rx = 12, ry = 7
+          const sx = 50 + Math.cos(a) * rx, sy = 48 + Math.sin(a) * ry
+          const ex = 50 + Math.cos(a) * (rx + 4), ey = 48 + Math.sin(a) * (ry + 3)
+          if (sy < 48) return null; // Only draw front stamens over petals
+          return (
+             <g key={`ltSt${i}`}>
+               <line x1={sx} y1={sy} x2={ex} y2={ey} stroke="#fef08a" strokeWidth="0.6" />
+               <circle cx={ex} cy={ey} r="1" fill="#eab308" />
+             </g>
+          )
+        })}
+
+        {/* Center highlight vein for front petal */}
+        <path d="M50 66 Q49 50 50 30" stroke="#fff" strokeWidth="1" fill="none" strokeOpacity="0.5" strokeLinecap="round" />
+      </svg>
+    )
+  },
+
+  // ── DAISY ─────────────────────────────────────────────────────────────────
+  daisy: ({ color, secondary, isBlooomed }) => {
+    // Daisy often has white petals, but will adapt to the passed colors.
+    // It features a prominent yellow/gold center disc and many slender petals.
+    const c = color || '#f8f9fa'
+    const s = secondary || '#e5e7eb'
+    const bloom = isBlooomed
+    const stretch = bloom ? 26 : 20
+    const id = c.replace('#','')
+    return (
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"
+        style={{ filter: 'drop-shadow(1px 3px 5px rgba(0,0,0,0.18))' }}>
+        <defs>
+          <linearGradient id={`dsP${id}`} x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%"   stopColor={s} />
+            <stop offset="60%"  stopColor={c} />
+            <stop offset="100%" stopColor={c === '#f8f9fa' ? '#ffffff' : c} stopOpacity={c === '#f8f9fa' ? "0.95" : "0.7"} />
+          </linearGradient>
+          <linearGradient id={`dsI${id}`} x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%"   stopColor={c} />
+            <stop offset="100%" stopColor={c === '#f8f9fa' ? '#ffffff' : c} stopOpacity={c === '#f8f9fa' ? "0.98" : "0.85"} />
+          </linearGradient>
+        </defs>
+        <OrganicStem />
+
+        {/* Watercolor wash */}
+        <circle cx="50" cy="43" r="23" fill={c} opacity="0.15" style={{ filter: 'blur(8px)' }} />
+
+        {/* Outer slender petals — 24 */}
+        {Array.from({ length: 24 }).map((_, i) => {
+          const angle = i * (360 / 24)
+          const len = stretch + Math.sin(i * 2.3) * 2.5
+          const curve = Math.cos(i * 1.7) * 1.5
+          return (
+            <motion.path key={`dsO${i}`}
+              d={`M50 43 Q${50-3.5+curve} ${43-len*0.45} 50 ${43-len} Q${50+3.5+curve} ${43-len*0.45} 50 43 Z`}
+              fill={`url(#dsP${id})`} stroke={`${c}66`} strokeWidth="0.5"
+              style={{ transformOrigin: '50px 43px', rotate: `${angle}deg` }}
+              animate={{ scaleY: bloom ? 1.05 : 0.9, scaleX: bloom ? 1.0 : 0.85 }}
+              transition={{ duration: 0.6, delay: i * 0.015 }}
+            />
+          )
+        })}
+
+        {/* Inner petals — 24, slightly shorter and offset */}
+        {Array.from({ length: 24 }).map((_, i) => {
+          const angle = i * (360 / 24) + 7.5
+          const len = stretch - 3.5 + Math.cos(i * 3) * 2
+          const curve = Math.sin(i * 2.1) * 1.5
+          return (
+            <motion.path key={`dsI${i}`}
+              d={`M50 43 Q${50-3+curve} ${43-len*0.45} 50 ${43-len} Q${50+3+curve} ${43-len*0.45} 50 43 Z`}
+              fill={`url(#dsI${id})`} stroke={`${c}88`} strokeWidth="0.5"
+              style={{ transformOrigin: '50px 43px', rotate: `${angle}deg` }}
+              animate={{ scaleY: bloom ? 1.0 : 0.85, scaleX: bloom ? 0.95 : 0.8 }}
+              transition={{ duration: 0.55, delay: 0.1 + i * 0.01 }}
+            />
+          )
+        })}
+
+        {/* Center Disc — Bright Yellow/Gold */}
+        <motion.circle cx="50" cy="43" r={bloom ? 7.5 : 6} fill="#f59e0b" stroke="#d97706" strokeWidth="0.8"
+          animate={{ r: bloom ? 7.5 : 6 }} transition={{ duration: 0.5 }} />
+        <motion.circle cx="50" cy="43" r={bloom ? 5.5 : 4} fill="#fbbf24"
+          animate={{ r: bloom ? 5.5 : 4 }} transition={{ duration: 0.5 }} />
+        
+        {/* Disc texture dots */}
+        {Array.from({ length: 26 }).map((_, i) => {
+          const a = i * 137.5 * Math.PI / 180
+          const rd = Math.sqrt(i) * 1.2
+          return (
+            <circle key={`dsD${i}`}
+              cx={50 + Math.cos(a) * rd} cy={43 + Math.sin(a) * rd}
+              r="0.65" fill="#fef3c7" opacity="0.85" />
+          )
+        })}
+
+        {/* Few highlights on disc */}
+        <path d="M46 41 Q50 38 54 41" stroke="#fcd34d" strokeWidth="1" fill="none" opacity="0.7" />
+      </svg>
+    )
+  },
+
+  // ── LAVENDER ──────────────────────────────────────────────────────────────
+  lavender: ({ color, secondary, isBlooomed }) => {
+    const c = color || '#a855f7'
+    const s = secondary || '#d8b4fe'
+    const dark = dk(c, 0.4)
+    const bloom = isBlooomed
+
+    // Generate random clustered florets
+    const florets = []
+    // Seeded random for consistent layout
+    let seed = 42
+    const rand = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
+    
+    // Distribute florets along the top half of the stem
+    const numLayers = 14
+    for (let layer = 0; layer < numLayers; layer++) {
+      const cyBase = 15 + layer * 3.5 // from top down
+      const maxDist = 6 - (layer / numLayers) * 1.5 // narrower near top
+      
+      const numFlorets = 3 + Math.floor(rand() * 3)
+      for (let f = 0; f < numFlorets; f++) {
+        const angle = rand() * Math.PI * 2
+        const dist = 1.5 + rand() * maxDist
+        const cx = 50 + Math.cos(angle) * dist
+        const cy = cyBase + Math.sin(angle) * dist*0.5
+        const rot = rand() * 360
+        const scale = 0.5 + rand() * 0.5 + (1 - layer/numLayers)*0.3 // slightly larger near top
+        
+        florets.push({
+          key: `lvF${layer}-${f}`,
+          cx, cy, rot, scale,
+          delay: (numLayers - layer) * 0.03 + rand() * 0.05
+        })
+      }
+    }
+
+    return (
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"
+        style={{ filter: 'drop-shadow(1px 2px 3px rgba(0,0,0,0.15))' }}>
+        
+        {/* Long thin stems */}
+        <path d="M50 92 Q49 70 50 48" stroke="#10b981" strokeWidth="1.5" />
+        <path d="M50 48 Q50 30 50 12" stroke="#4ade80" strokeWidth="1.2" />
+        
+        {/* Soft aura */}
+        <ellipse cx="50" cy="35" rx="14" ry="28" fill={c} opacity="0.12" style={{ filter: 'blur(6px)' }} />
+
+        {/* Leaves at base */}
+        <motion.path d="M50 75 Q42 65 38 52 Q42 62 50 70" fill="#34d399" opacity="0.8"
+          style={{ transformOrigin: '50px 75px' }} animate={{ rotate: bloom ? 0 : 15 }} transition={{ duration: 0.8 }} />
+        <motion.path d="M50 82 Q56 70 62 58 Q56 68 50 75" fill="#10b981" opacity="0.8"
+          style={{ transformOrigin: '50px 82px' }} animate={{ rotate: bloom ? 0 : -15 }} transition={{ duration: 0.8 }} />
+        <motion.path d="M50 65 Q45 55 42 45 Q46 52 50 62" fill="#059669" opacity="0.7"
+          style={{ transformOrigin: '50px 65px' }} animate={{ rotate: bloom ? 0 : 10 }} transition={{ duration: 0.8 }} />
+
+        {/* Florets */}
+        {florets.map(fl => (
+          <motion.g key={fl.key} 
+            style={{ transformOrigin: `${fl.cx}px ${fl.cy}px`, rotate: `${fl.rot}deg` }}
+            animate={{ scale: bloom ? fl.scale : 0.2, opacity: bloom ? 1 : 0 }}
+            transition={{ duration: 0.5, delay: fl.delay }}>
+            <ellipse cx={fl.cx} cy={fl.cy} rx="2" ry="3.5" fill={s} opacity="0.9" />
+            <ellipse cx={fl.cx} cy={fl.cy + 1} rx="2.5" ry="2" fill={c} opacity="0.95" />
+            <circle cx={fl.cx} cy={fl.cy + 2} r="1.5" fill={dark} opacity="0.6" />
+            
+            {/* tiny stamen highlight */}
+            <circle cx={fl.cx} cy={fl.cy} r="0.6" fill="#ffffff" opacity="0.8" />
+          </motion.g>
+        ))}
       </svg>
     )
   },

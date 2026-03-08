@@ -101,7 +101,7 @@ export const flowerCatalog = [
   },
   {
     id: 'lily',
-    svgType: 'cherry',
+    svgType: 'lily',
     name: 'Lily',
     emoji: '\uD83C\uDF3A',
     colors: [
@@ -115,20 +115,21 @@ export const flowerCatalog = [
   },
   {
     id: 'daisy',
-    svgType: 'sunflower',
+    svgType: 'daisy',
     name: 'Daisy',
     emoji: '\uD83C\uDF3C',
     colors: [
-      { id: 'yellow', label: 'Yellow', hex: '#FDE68A' },
+      { id: 'white',  label: 'White',  hex: '#f8f9fa' },
+      { id: 'yellow', label: 'Yellow', hex: '#FBBF24' },
       { id: 'pink',   label: 'Pink',   hex: '#FFB7C5' },
     ],
-    defaultColor: '#FDE68A',
-    secondary: '#FEF3C7',
-    glow: 'rgba(253, 230, 138, 0.45)',
+    defaultColor: '#f8f9fa',
+    secondary: '#e5e7eb',
+    glow: 'rgba(248, 249, 250, 0.45)',
   },
   {
     id: 'lavender',
-    svgType: 'orchid',
+    svgType: 'lavender',
     name: 'Lavender',
     emoji: '\uD83D\uDC9C',
     colors: [

@@ -10,6 +10,10 @@ import { Sparkles, ArrowRight } from "lucide-react";
 function FlowerCard({ flower, isSelected, sel, onToggle, onColorChange }) {
   const Shape = FLOWER_SVGS[flower.svgType];
   const colorHex = sel?.colorHex || flower.defaultColor;
+  
+  // Safe color for borders and text if the selected color is too light
+  const isLight = ['#f8f9fa', '#f0eeea', '#ffffff'].includes(colorHex.toLowerCase());
+  const safeColor = isLight ? '#D97706' : colorHex; // fallback to amber
 
   return (
     <motion.button
@@ -21,9 +25,9 @@ function FlowerCard({ flower, isSelected, sel, onToggle, onColorChange }) {
         minHeight: 165,
         ...(isSelected
           ? {
-              borderColor: colorHex,
+              borderColor: safeColor,
               background: `#ffffff`,
-              boxShadow: `0 0 0 2px ${colorHex}60, 0 8px 28px ${colorHex}30`,
+              boxShadow: `0 0 0 2px ${safeColor}60, 0 8px 28px ${safeColor}30`,
             }
           : {
               borderColor: "transparent",
@@ -38,7 +42,7 @@ function FlowerCard({ flower, isSelected, sel, onToggle, onColorChange }) {
           <motion.div
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: `radial-gradient(ellipse at 50% 48%, ${colorHex}28 0%, transparent 70%)`,
+              background: `radial-gradient(ellipse at 50% 48%, ${safeColor}28 0%, transparent 70%)`,
             }}
             initial={{ opacity: 0 }}
             animate={{ opacity: [0.5, 1, 0.5] }}
@@ -58,8 +62,8 @@ function FlowerCard({ flower, isSelected, sel, onToggle, onColorChange }) {
             transition={{ type: "spring", stiffness: 250, damping: 18 }}
             className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center z-10"
             style={{
-              background: colorHex,
-              boxShadow: `0 2px 8px ${colorHex}70`,
+              background: safeColor,
+              boxShadow: `0 2px 8px ${safeColor}70`,
             }}
           >
             <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
@@ -101,7 +105,7 @@ function FlowerCard({ flower, isSelected, sel, onToggle, onColorChange }) {
       {/* Flower name */}
       <motion.span
         className="relative z-10 text-xs font-semibold leading-tight max-w-full px-1 truncate"
-        animate={{ color: isSelected ? colorHex : "#9ca3af" }}
+        animate={{ color: isSelected ? safeColor : "#9ca3af" }}
         transition={{ duration: 0.3 }}
         title={flower.name}
       >
@@ -195,10 +199,13 @@ export default function GardenScene({ onFinale }) {
 
   const accentColor = useMemo(() => {
     if (!selectedFlowers.length) return "#EC4899";
-    return (
-      flowerCatalog.find((f) => f.id === selectedFlowers[0].flowerId)
-        ?.defaultColor || "#EC4899"
-    );
+    const baseColor = selectedFlowers[0].colorHex;
+    const lower = baseColor.toLowerCase();
+    // Fallbacks for very light colors so text remains readable on white background
+    if (['#f8f9fa', '#f0eeea', '#ffffff'].includes(lower)) return '#D97706'; // Whites -> Amber
+    if (['#fde68a', '#fbbf24', '#ffb347'].includes(lower)) return '#D97706'; // Yellows -> Amber
+    if (['#e8e4f0', '#e4f5ef'].includes(lower)) return '#0F766E'; // Light teals -> dark teal
+    return baseColor;
   }, [selectedFlowers]);
 
   const msg = useMemo(

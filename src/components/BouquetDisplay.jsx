@@ -313,6 +313,85 @@ function BqCherry({ cx, cy, r, color, delay = 0, variant = 0 }) {
   )
 }
 
+// ── Lily: 6 elongated spreading petals with long stamens ─────────────────────
+function BqLily({ cx, cy, r, color, delay = 0, variant = 0 }) {
+  const d  = dk(color, 0.20)
+  const d2 = dk(color, 0.38)
+  const isLight = color === '#f0eeea' || color === '#f8f9fa'
+  const stripeColor = isLight ? dk(color, 0.15) : dk(color, 0.28)
+
+  return (
+    <Mg delay={delay}>
+      <Shadow cx={cx} cy={cy} r={r} />
+      <g transform={vt(cx, cy, variant)}>
+      <Calyx cx={cx} cy={cy} r={r} />
+
+      {/* 6 elongated lily petals */}
+      {Array.from({ length: 6 }, (_, i) => {
+        const a = (i / 6) * 2 * Math.PI - Math.PI / 2
+        const tipX = cx + Math.cos(a) * r * 0.92
+        const tipY = cy + Math.sin(a) * r * 0.92
+        const baseX = cx + Math.cos(a) * r * 0.12
+        const baseY = cy + Math.sin(a) * r * 0.12
+        const perp = a + Math.PI / 2
+        const w = r * 0.24
+        const c1x = cx + Math.cos(a) * r * 0.35 + Math.cos(perp) * w
+        const c1y = cy + Math.sin(a) * r * 0.35 + Math.sin(perp) * w
+        const c2x = cx + Math.cos(a) * r * 0.35 - Math.cos(perp) * w
+        const c2y = cy + Math.sin(a) * r * 0.35 - Math.sin(perp) * w
+        return (
+          <g key={i}>
+            <path
+              d={`M${baseX},${baseY} Q${c1x},${c1y} ${tipX},${tipY} Q${c2x},${c2y} ${baseX},${baseY}Z`}
+              fill={color} opacity={0.88}
+            />
+            {/* Center stripe on each petal */}
+            <line
+              x1={baseX} y1={baseY} x2={tipX} y2={tipY}
+              stroke={stripeColor} strokeWidth={r * 0.03} opacity={0.45}
+              strokeLinecap="round"
+            />
+            {/* Subtle spots on petals */}
+            {[0.35, 0.52, 0.65].map((t, j) => {
+              const sx = cx + Math.cos(a) * r * t * 0.9 + Math.cos(perp) * r * 0.055 * (j % 2 === 0 ? 1 : -1)
+              const sy = cy + Math.sin(a) * r * t * 0.9 + Math.sin(perp) * r * 0.055 * (j % 2 === 0 ? 1 : -1)
+              return <circle key={j} cx={sx} cy={sy} r={r * 0.022} fill={d2} opacity={0.30} />
+            })}
+          </g>
+        )
+      })}
+
+      {/* Long stamens (6 filaments with T-shaped anthers) */}
+      {Array.from({ length: 6 }, (_, i) => {
+        const a = (i / 6) * 2 * Math.PI - Math.PI / 2 + (Math.PI / 6)
+        const sx = cx + Math.cos(a) * r * 0.08
+        const sy = cy + Math.sin(a) * r * 0.08
+        const ex = cx + Math.cos(a) * r * 0.68
+        const ey = cy + Math.sin(a) * r * 0.68
+        const perp = a + Math.PI / 2
+        return (
+          <g key={i}>
+            <line x1={sx} y1={sy} x2={ex} y2={ey}
+              stroke="#8B4513" strokeWidth={r * 0.025} opacity={0.70} strokeLinecap="round" />
+            {/* Anther (elongated capsule) */}
+            <ellipse
+              cx={ex} cy={ey}
+              rx={r * 0.055} ry={r * 0.018}
+              fill="#B5451B" opacity={0.85}
+              transform={`rotate(${a * 180 / Math.PI + 90},${ex},${ey})`}
+            />
+          </g>
+        )
+      })}
+
+      {/* Pistil in center */}
+      <circle cx={cx} cy={cy} r={r * 0.07} fill="#FFF5E0" opacity={0.90} />
+      <circle cx={cx} cy={cy} r={r * 0.04} fill="#FFEC8B" />
+      </g>
+    </Mg>
+  )
+}
+
 // ── Peony: dense rounded ball of layered petals ───────────────────────────────
 function BqPeony({ cx, cy, r, color, delay = 0, variant = 0 }) {
   const d  = dk(color, 0.18)
@@ -370,49 +449,87 @@ function BqPeony({ cx, cy, r, color, delay = 0, variant = 0 }) {
   )
 }
 
-// ── Lotus: two rings of pointed petals + golden center ───────────────────────
+// ── Lotus: Realistic ──────────────────────────────────────────────────────────
 function BqLotus({ cx, cy, r, color, delay = 0, variant = 0 }) {
-  const d  = dk(color, 0.20)
-  const d2 = dk(color, 0.38)
+  const c = color || '#6EE7B7'
+  const s = dk((c === '#f8f9fa' ? '#e4f5ef' : c), 0.15)
+  const dark = dk(c, 0.4)
+  const R = r * 1.3 // slightly larger overall presence
 
-  const outer = Array.from({ length: 9 }, (_, i) => {
-    const a  = (i / 9) * 2 * Math.PI
-    const px = cx + Math.cos(a) * r * 0.60
-    const py = cy + Math.sin(a) * r * 0.60
-    const rot = a * 180 / Math.PI + 90
+  // Background/Outer wide petals (spread out)
+  const outer = [-65, -35, 35, 65].map((deg, i) => {
+    const rot = deg * Math.PI / 180
+    // Simplified perspective projection around center
+    const xOffset = Math.sin(rot) * R * 0.4
+    const yOffset = -Math.cos(rot) * R * 0.4
     return (
-      <g key={i}>
-        <ellipse cx={px} cy={py} rx={r * 0.19} ry={r * 0.46}
-          fill={color} opacity={0.84} transform={`rotate(${rot},${px},${py})`} />
-        <Vein x1={px} y1={py} x2={cx + Math.cos(a) * r * 0.30} y2={cy + Math.sin(a) * r * 0.30}
-          color={d2} opacity={0.22} />
-      </g>
+      <path key={`ltB${i}`}
+        d={`M${cx} ${cy+R*0.1} C${cx-R*0.3} ${cy-R*0.2} ${cx-R*0.4} ${cy-R*0.7} ${cx} ${cy-R*1.1} C${cx+R*0.4} ${cy-R*0.7} ${cx+R*0.3} ${cy-R*0.2} ${cx} ${cy+R*0.1} Z`}
+        fill={c} stroke={dark} strokeWidth="0.8" strokeOpacity="0.25" opacity="0.85"
+        style={{ transformOrigin: `${cx}px ${cy+R*0.1}px`, transform: `rotate(${deg}deg) scaleY(0.9) scaleX(1.1)` }}
+      />
     )
   })
 
-  const mid = Array.from({ length: 6 }, (_, i) => {
-    const a  = ((i + 0.5) / 6) * 2 * Math.PI - Math.PI / 6
-    const px = cx + Math.cos(a) * r * 0.34
-    const py = cy + Math.sin(a) * r * 0.34
-    const rot = a * 180 / Math.PI + 90
-    return <ellipse key={i} cx={px} cy={py} rx={r * 0.16} ry={r * 0.36}
-      fill={d} opacity={0.90} transform={`rotate(${rot},${px},${py})`} />
+  // Mid-layer petals (overlap)
+  const mid = [-45, -20, 20, 45].map((deg, i) => {
+    return (
+      <path key={`ltM${i}`}
+        d={`M${cx} ${cy+R*0.1} C${cx-R*0.25} ${cy-R*0.2} ${cx-R*0.35} ${cy-R*0.8} ${cx} ${cy-R*1.2} C${cx+R*0.35} ${cy-R*0.8} ${cx+R*0.25} ${cy-R*0.2} ${cx} ${cy+R*0.1} Z`}
+        fill={s} stroke={dark} strokeWidth="1" strokeOpacity="0.3" opacity="0.9"
+        style={{ transformOrigin: `${cx}px ${cy+R*0.1}px`, transform: `rotate(${deg}deg) scaleX(0.9)` }}
+      />
+    )
+  })
+
+  // Inner frontal petals (stand tall)
+  const inner = [-12, 0, 12].map((deg, i) => {
+    return (
+      <path key={`ltI${i}`}
+        d={`M${cx} ${cy+R*0.1} C${cx-R*0.2} ${cy-R*0.3} ${cx-R*0.25} ${cy-R*0.9} ${cx} ${cy-R*1.25} C${cx+R*0.25} ${cy-R*0.9} ${cx+R*0.2} ${cy-R*0.3} ${cx} ${cy+R*0.1} Z`}
+        fill={(c === '#f8f9fa' ? '#ffffff' : c)} stroke={dark} strokeWidth="1.2" strokeOpacity="0.4"
+        style={{ transformOrigin: `${cx}px ${cy+R*0.1}px`, transform: `rotate(${deg}deg)` }}
+      />
+    )
   })
 
   return (
     <Mg delay={delay}>
       <Shadow cx={cx} cy={cy} r={r} />
       <g transform={vt(cx, cy, variant)}>
-      <Calyx cx={cx} cy={cy} r={r} />
-      {outer}{mid}
-      {/* Stigma receptacle */}
-      <circle cx={cx} cy={cy} r={r * 0.22} fill="#FFE566" />
-      <circle cx={cx} cy={cy} r={r * 0.14} fill="#FFBB00" />
-      {Array.from({ length: 8 }, (_, i) => {
-        const a = (i / 8) * 2 * Math.PI
-        return <circle key={i} cx={cx + Math.cos(a) * r * 0.09} cy={cy + Math.sin(a) * r * 0.09}
-          r={r * 0.028} fill="#CC8800" opacity={0.70} />
-      })}
+        <Calyx cx={cx} cy={cy} r={r} />
+        {outer}
+        {mid}
+        {inner}
+        
+        {/* Receptacle center (Yellow pod) */}
+        <ellipse cx={cx} cy={cy-R*0.3} rx={R*0.2} ry={R*0.12} fill="#fde047" stroke="#ca8a04" strokeWidth="1" />
+        <ellipse cx={cx} cy={cy-R*0.32} rx={R*0.16} ry={R*0.08} fill="#eab308" />
+          
+        {/* Seed holes */}
+        {Array.from({ length: 9 }).map((_, i) => {
+          const a = i * 40 * Math.PI / 180
+          const rd = i < 5 ? R*0.09 : R*0.04
+          return <circle key={`ltSd${i}`} cx={cx+Math.cos(a)*rd} cy={cy-R*0.32+Math.sin(a)*rd*0.6} r={R*0.025} fill="#854d0e" opacity="0.65" />
+        })}
+
+        {/* Delicate Stamens */}
+        {Array.from({ length: 16 }).map((_, i) => {
+          const a = (i * 360 / 16) * Math.PI / 180
+          const rx = R*0.24, ry = R*0.14
+          const sx = cx + Math.cos(a) * rx, sy = cy-R*0.3 + Math.sin(a) * ry
+          const ex = cx + Math.cos(a) * (rx + R*0.08), ey = cy-R*0.3 + Math.sin(a) * (ry + R*0.06)
+          if (sy < cy-R*0.3) return null; // Only draw front stamens
+          return (
+             <g key={`ltSt${i}`}>
+               <line x1={sx} y1={sy} x2={ex} y2={ey} stroke="#fef08a" strokeWidth="1" />
+               <circle cx={ex} cy={ey} r={R*0.02} fill="#eab308" />
+             </g>
+          )
+        })}
+
+        {/* Center highlight vein for front petal */}
+        <path d={`M${cx} ${cy+R*0.1} Q${cx-R*0.05} ${cy-R*0.3} ${cx} ${cy-R*0.7}`} stroke="#ffffff" strokeWidth="1.5" fill="none" strokeOpacity="0.5" strokeLinecap="round" />
       </g>
     </Mg>
   )
@@ -443,6 +560,129 @@ function BqSmall({ cx, cy, r, color, delay = 0 }) {
   )
 }
 
+// ── Daisy: slender petals with a bright yellow focal disc ───────────────────
+function BqDaisy({ cx, cy, r, color, delay = 0, variant = 0 }) {
+  const d = dk(color, 0.20)
+  const pc = 20
+
+  const petals = Array.from({ length: pc }, (_, i) => {
+    const a   = (i / pc) * 2 * Math.PI
+    const dist = r * 0.58
+    const px  = cx + Math.cos(a) * dist
+    const py  = cy + Math.sin(a) * dist
+    const rot = a * 180 / Math.PI + 90
+    return (
+      <ellipse key={i} cx={px} cy={py} rx={r * 0.12} ry={r * 0.42}
+        fill={color} opacity={0.95}
+        transform={`rotate(${rot},${px},${py})`} />
+    )
+  })
+
+  // Inner petals (offset)
+  const inner = Array.from({ length: pc }, (_, i) => {
+    const a   = ((i + 0.5) / pc) * 2 * Math.PI
+    const dist = r * 0.50
+    const px  = cx + Math.cos(a) * dist
+    const py  = cy + Math.sin(a) * dist
+    const rot = a * 180 / Math.PI + 90
+    return <ellipse key={i} cx={px} cy={py} rx={r * 0.10} ry={r * 0.35}
+      fill={color === '#f8f9fa' ? '#ffffff' : color} opacity={0.88} transform={`rotate(${rot},${px},${py})`} />
+  })
+
+  return (
+    <Mg delay={delay}>
+      <Shadow cx={cx} cy={cy} r={r} />
+      <g transform={vt(cx, cy, variant)}>
+        <Calyx cx={cx} cy={cy} r={r} />
+        {petals}
+        {inner}
+        {/* Disc */}
+        <circle cx={cx} cy={cy} r={r * 0.22} fill="#F59E0B" stroke="#D97706" strokeWidth={0.5} />
+        <circle cx={cx} cy={cy} r={r * 0.15} fill="#FBBF24" />
+        {/* Texture dots */}
+        {Array.from({ length: 12 }, (_, i) => {
+          const a = i * 137.5 * Math.PI / 180
+          const rd = Math.sqrt(i) * r * 0.05
+          return (
+            <circle key={`dsD${i}`} cx={cx + Math.cos(a) * rd} cy={cy + Math.sin(a) * rd} r={r * 0.025} fill="#FEF3C7" opacity={0.85} />
+          )
+        })}
+      </g>
+    </Mg>
+  )
+}
+
+// ── Lavender: tall stalk with clustered tiny florets ──────────────────────────
+function BqLavender({ cx, cy, r, color, delay = 0, variant = 0 }) {
+  const c = color || '#a855f7'
+  const s = dk(c, 0.15)
+  const dark = dk(c, 0.35)
+  
+  // Make lavender taller and narrower
+  const R = r * 1.6
+
+  // Generate clustered florets along the top 65% of the stem
+  const florets = []
+  let seed = 42 + cx * cy
+  const rand = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
+  
+  const numLayers = 18
+  for (let layer = 0; layer < numLayers; layer++) {
+    const yRatio = layer / numLayers // 0 = top, 1 = bottom of flower portion
+    const cyBase = cy - R * 1.2 + yRatio * R * 1.5
+    // Make the spread bushier and more chaotic
+    const spread = R * 0.35 - yRatio * R * 0.15 
+    
+    // More florets for a fuller, messier bush
+    const numFlorets = 4 + Math.floor(rand() * 5) + (1 - yRatio) * 3
+    for (let f = 0; f < numFlorets; f++) {
+      const angle = rand() * Math.PI * 2
+      const dist = rand() * spread
+      const fx = cx + Math.cos(angle) * dist + (rand()-0.5)*R*0.1
+      const fy = cyBase + Math.sin(angle) * dist * 0.6 + (rand()-0.5)*R*0.1
+      const rot = rand() * 360
+      const size = R * 0.05 + rand() * R * 0.04 + (1 - yRatio) * R * 0.02
+      
+      florets.push(
+        <g key={`lvF${layer}-${f}`} transform={`translate(${fx}, ${fy}) rotate(${rot}) scale(${size/5})`}>
+          <ellipse cx="0" cy="0" rx="3.5" ry="5.5" fill={s} opacity="0.9" />
+          <ellipse cx="0" cy="1" rx="4.5" ry="3.5" fill={c} opacity="0.95" />
+          <circle cx="0" cy="2" r="2.5" fill={dark} opacity="0.7" />
+          <circle cx="0" cy="0" r="1" fill="#ffffff" opacity="0.6" />
+        </g>
+      )
+    }
+  }
+
+  // Create an organic tilt based on variant
+  const tilts = [0, -12, 0, 12, 18, -18] // Add varied rotation
+  const tilt = tilts[variant % tilts.length]
+
+  return (
+    <Mg delay={delay}>
+      <Shadow cx={cx} cy={cy} r={r * 0.9} />
+      {/* Apply tilt globally to the lavender stem so it leans dynamically in the bouquet */}
+      <g transform={`rotate(${tilt}, ${cx}, ${cy+R*0.3})`}>
+        {/* Tall green stems - ending higher up (cy+R*0.4) so they don't poke through the wrapper bottom */}
+        <path d={`M${cx} ${cy+R*0.4} C${cx-R*0.1} ${cy+R*0.1} ${cx+R*0.1} ${cy-R*0.5} ${cx} ${cy-R*1.2}`} 
+          stroke="#4ade80" strokeWidth={R*0.06} fill="none" strokeLinecap="round" />
+        <path d={`M${cx} ${cy+R*0.4} C${cx} ${cy} ${cx} ${cy-R*0.5} ${cx} ${cy-R*1.2}`} 
+          stroke="#10b981" strokeWidth={R*0.03} fill="none" strokeLinecap="round" opacity="0.7" />
+        
+        {/* Slender base leaves - also shifted up slightly */}
+        <path d={`M${cx} ${cy+R*0.2} Q${cx-R*0.4} ${cy-R*0.1} ${cx-R*0.5} ${cy-R*0.4} Q${cx-R*0.1} ${cy} ${cx} ${cy+R*0.1}`} fill="#34d399" opacity="0.8" />
+        <path d={`M${cx} ${cy+R*0.3} Q${cx+R*0.4} ${cy} ${cx+R*0.5} ${cy-R*0.3} Q${cx+R*0.1} ${cy} ${cx} ${cy+R*0.2}`} fill="#10b981" opacity="0.8" />
+        
+        {/* Soft aura blur */}
+        <ellipse cx={cx} cy={cy-R*0.3} rx={R*0.4} ry={R*0.9} fill={c} opacity="0.2" style={{ filter: 'blur(12px)' }} />
+
+        {/* Drawn Florets */}
+        {florets}
+      </g>
+    </Mg>
+  )
+}
+
 // ── Dispatcher ────────────────────────────────────────────────────────────────
 const RENDERERS = {
   rose:      BqRose,
@@ -450,8 +690,11 @@ const RENDERERS = {
   sunflower: BqSunflower,
   orchid:    BqOrchid,
   cherry:    BqCherry,
+  lily:      BqLily,
   peony:     BqPeony,
   lotus:     BqLotus,
+  daisy:     BqDaisy,
+  lavender:  BqLavender,
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -999,19 +1242,35 @@ export default function BouquetDisplay({ selectedFlowers }) {
     })
   }, [selectedFlowers, count])
 
-  const mainFlowers = useMemo(() =>
-    FLOWER_POSITIONS.map((pos, i) => {
+  const mainFlowers = useMemo(() => {
+    const typeOccurrence = {}
+    return FLOWER_POSITIONS.map((pos, i) => {
       const ft = flowerTypes[i % flowerTypes.length]
-      return { ...pos, svgType: ft.svgType, colorHex: ft.colorHex }
+      const cat = flowerCatalog.find(f => f.svgType === ft.svgType)
+      const palette = cat?.colors?.map(c => c.hex) || [ft.colorHex]
+      const allColors = [ft.colorHex, ...palette.filter(h => h !== ft.colorHex)]
+      const key = `${ft.svgType}_${i % flowerTypes.length}`
+      typeOccurrence[key] = (typeOccurrence[key] || 0)
+      const colorHex = allColors[typeOccurrence[key] % allColors.length]
+      typeOccurrence[key]++
+      return { ...pos, svgType: ft.svgType, colorHex }
     })
-  , [flowerTypes])
+  }, [flowerTypes])
 
-  const smallFlowers = useMemo(() =>
-    SMALL_POSITIONS.map((pos, i) => {
+  const smallFlowers = useMemo(() => {
+    const typeOccurrence = {}
+    return SMALL_POSITIONS.map((pos, i) => {
       const ft = flowerTypes[i % flowerTypes.length]
-      return { ...pos, colorHex: ft.colorHex }
+      const cat = flowerCatalog.find(f => f.svgType === ft.svgType)
+      const palette = cat?.colors?.map(c => c.hex) || [ft.colorHex]
+      const allColors = [ft.colorHex, ...palette.filter(h => h !== ft.colorHex)]
+      const key = `small_${ft.svgType}_${i % flowerTypes.length}`
+      typeOccurrence[key] = (typeOccurrence[key] || 0)
+      const colorHex = allColors[typeOccurrence[key] % allColors.length]
+      typeOccurrence[key]++
+      return { ...pos, colorHex }
     })
-  , [flowerTypes])
+  }, [flowerTypes])
 
   const berryColors = useMemo(() =>
     BERRY_POSITIONS.map(b => ({ ...b, color: flowerTypes[b.colorIdx % flowerTypes.length].colorHex }))
