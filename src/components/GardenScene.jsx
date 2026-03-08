@@ -479,7 +479,7 @@ export default function GardenScene({ onFinale }) {
                 </motion.p>
 
                 <motion.button
-                  className="mt-10 flex items-center gap-3 text-gray-300 hover:text-gray-600 transition-colors uppercase tracking-widest text-xs font-bold"
+                  className="mt-10 flex items-center gap-3 text-gray-500 hover:text-gray-800 transition-colors uppercase tracking-widest text-xs font-bold"
                   onClick={onFinale}
                   whileHover={{ x: 6 }}
                   initial={{ opacity: 0 }}
