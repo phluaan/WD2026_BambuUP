@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ParticleBackground from "./ParticleBackground";
 import BouquetDisplay from "./BouquetDisplay";
@@ -146,6 +146,7 @@ function FlowerCard({ flower, isSelected, sel, onToggle, onColorChange }) {
 
 // ── Main scene ─────────────────────────────────────────────────────────────
 export default function GardenScene({ onFinale }) {
+  const containerRef = useRef(null);
   const [step, setStep] = useState("form"); // 'form' | 'bouquet'
   const [name, setName] = useState("");
   const [selectedFlowers, setSelectedFlowers] = useState([]);
@@ -205,8 +206,18 @@ export default function GardenScene({ onFinale }) {
     [name, selectedFlowers],
   );
 
+  useEffect(() => {
+    if (step === "bouquet" && containerRef.current) {
+      // Small timeout to allow the layout to render before scrolling
+      setTimeout(() => {
+        containerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+      }, 50);
+    }
+  }, [step]);
+
   return (
     <motion.div
+      ref={containerRef}
       className="fixed inset-0 overflow-y-auto overflow-x-hidden"
       style={{
         background:
@@ -287,7 +298,7 @@ export default function GardenScene({ onFinale }) {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2, duration: 1 }}
                 >
-                  Tạo Bó Hoa Của Bạn
+                  Tạo Thông Điệp Dành Riêng Cho Bạn
                 </motion.h2>
                 <motion.p
                   className="text-gray-400 font-light tracking-wide text-sm"
