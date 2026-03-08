@@ -516,8 +516,153 @@ function Leaf({ x1, y1, length, angle, color = '#5E9B62', delay = 0 }) {
   )
 }
 
+function Fern({ x, y, angle, scale = 1, delay = 0 }) {
+  const leaves = 12
+  const length = 55 * scale
+  return (
+    <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay, duration: 0.6 }}
+      transform={`translate(${x},${y}) rotate(${angle})`}
+      transformOrigin="0 0">
+      {/* Central stem */}
+      <line x1={0} y1={0} x2={length} y2={0} stroke="#658D5A" strokeWidth={1.5} opacity={0.8} />
+      {/* Fern fronds */}
+      {Array.from({ length: leaves }).map((_, i) => {
+        const t = (i + 1) / (leaves + 1)
+        const px = length * t
+        const frondL = (1 - t) * 16 * scale + 4
+        return (
+          <g key={i}>
+            <path d={`M${px} 0 Q${px + frondL*0.5} ${-frondL*0.5} ${px + frondL} ${-frondL} Q${px + frondL*0.2} ${-frondL*0.1} ${px} 0`} fill="#7CBF80" opacity={0.8} />
+            <path d={`M${px} 0 Q${px + frondL*0.5} ${frondL*0.5} ${px + frondL} ${frondL} Q${px + frondL*0.2} ${frondL*0.1} ${px} 0`} fill="#6BAA74" opacity={0.8} />
+          </g>
+        )
+      })}
+    </motion.g>
+  )
+}
+
+function Eucalyptus({ x, y, angle, scale = 1, delay = 0 }) {
+  const pairs = 5
+  const length = 50 * scale
+  return (
+    <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay, duration: 0.6 }}
+      transform={`translate(${x},${y}) rotate(${angle})`}
+      transformOrigin="0 0">
+      <line x1={0} y1={0} x2={length} y2={0} stroke="#7D988F" strokeWidth={1.8} />
+      {Array.from({ length: pairs }).map((_, i) => {
+        const t = (i + 0.5) / pairs
+        const px = length * t
+        const r = (1 - t * 0.4) * 6 * scale
+        return (
+          <g key={i}>
+            <circle cx={px} cy={-r*0.8} r={r} fill="#88B8A6" opacity={0.9} />
+            <circle cx={px} cy={r*0.8} r={r} fill="#70A090" opacity={0.9} />
+            <circle cx={px + r*0.4} cy={0} r={r*0.6} fill="#A0D0BE" opacity={0.8} />
+          </g>
+        )
+      })}
+    </motion.g>
+  )
+}
+
+// ── Pattern Generator (10 styles) ─────────────────────────────────────────────
+// The patterns are defined as SVG <defs> and return a url(#pattern-id)
+function getPatternDef(id, styleIdx, color, bg) {
+  const pId = `wrap-pattern-${id}`
+  const d   = dk(color, 0.4) // drawn element color
+  const d2  = dk(color, 0.6)
+  
+  let content = null
+  let w = 20, h = 20
+  
+  switch(styleIdx) {
+    case 0: // Small dots
+      w = 32; h = 32
+      content = <circle cx={16} cy={16} r={2.5} fill={d} opacity={0.25} />
+      break
+    case 1: // Diagonal stripes
+      w = 40; h = 40
+      content = <path d="M-10,50 L50,-10 M30,70 L70,30 M-30,10 L10,-30" stroke={d} strokeWidth={3} opacity={0.15} />
+      break
+    case 2: // Gingham / Plaid
+      w = 50; h = 50
+      content = (
+        <g opacity={0.15}>
+          <rect width={30} height={10} fill={d} />
+          <rect width={10} height={30} fill={d} />
+        </g>
+      )
+      break
+    case 3: // Hearts
+      w = 46; h = 46
+      content = (
+        <path d="M23 18 A6 6 0 0 0 11 20 A6 6 0 0 0 23 32 A6 6 0 0 0 35 20 A6 6 0 0 0 23 18 Z" fill={d} opacity={0.2} />
+      )
+      break
+    case 4: // Chevron
+      w = 60; h = 30
+      content = (
+        <path d="M0,15 L15,30 L45,0 L60,15" stroke={d} strokeWidth={3} fill="none" opacity={0.2} strokeLinecap="round" strokeLinejoin="round" />
+      )
+      break
+    case 5: // Diamonds (Harlequin)
+      w = 24; h = 36
+      content = (
+        <g opacity={0.18}>
+          <path d="M12,0 L24,18 L12,36 L0,18 Z" fill={d} />
+          <path d="M12,0 L24,18 L12,36 L0,18 Z" stroke={bg} strokeWidth={2} fill="none" />
+        </g>
+      )
+      break
+    case 6: // Floral / Starburst
+      w = 32; h = 32
+      content = (
+        <g stroke={d} strokeWidth={2} strokeLinecap="round" opacity={0.25}>
+          <line x1={8} y1={16} x2={24} y2={16} />
+          <line x1={16} y1={8} x2={16} y2={24} />
+          <line x1={10.5} y1={10.5} x2={21.5} y2={21.5} />
+          <line x1={10.5} y1={21.5} x2={21.5} y2={10.5} />
+          <circle cx={16} cy={16} r={3} fill={bg} />
+        </g>
+      )
+      break
+    case 7: // Waves
+      w = 30; h = 15
+      content = (
+        <path d="M0,7.5 Q7.5,15 15,7.5 T30,7.5" stroke={d} strokeWidth={2} fill="none" opacity={0.3} strokeLinecap="round" />
+      )
+      break
+    case 8: // Honeycomb / Hexagon
+      w = 51.96; h = 90
+      content = (
+        <g stroke={d} strokeWidth={2} fill="none" opacity={0.2}>
+          <path d="M25.98,15 L51.96,30 L51.96,60 L25.98,75 L0,60 L0,30 Z" />
+          <path d="M25.98,-30 L51.96,-15 L51.96,15 L25.98,30 L0,15 L0,-15 Z" />
+          <path d="M25.98,60 L51.96,75 L51.96,105 L25.98,120 L0,105 L0,75 Z" />
+        </g>
+      )
+      break
+    case 9: // Soft Curved Lines (Horizontal Swirls)
+      w = 60; h = 30
+      content = (
+        <path d="M0,15 C20,0 40,30 60,15" stroke={d} strokeWidth={2} fill="none" opacity={0.3} strokeLinecap="round" />
+      )
+      break
+  }
+  
+  return {
+    id: pId,
+    def: (
+      <pattern id={pId} width={w} height={h} patternUnits="userSpaceOnUse" patternTransform="rotate(5)">
+        <rect width={w} height={h} fill={bg} />
+        {content}
+      </pattern>
+    )
+  }
+}
+
 // ── Stems (thin lines above wrap zone) ───────────────────────────────────────
-function Stems({ flowers, gatherX, gatherY, wrapTopY }) {
+function Stems({ flowers, gatherX, gatherY }) {
   return (
     <g>
       {flowers.map((f, i) => (
@@ -574,10 +719,15 @@ function coneGeom(bX, bTopY, fTopY, bottY, bHW, nHW) {
   // front half-width interpolated from back at fTopY level
   const t   = (fTopY - bTopY) / (bottY - bTopY)
   const fHW = bHW * (1 - t) + nHW * t
+  // Back part is rounder and taller
+  const bCurveY = bTopY - 75
+  // Front part is cut down (dips deeper) to reveal flowers
+  const fDipY = fTopY + 45
+  
   return {
-    back:  `M${bX-bHW} ${bTopY} Q${bX} ${bTopY-20} ${bX+bHW} ${bTopY} L${bX+nHW+5} ${bottY} L${bX-nHW-5} ${bottY} Z`,
-    front: `M${bX-fHW-4} ${fTopY} Q${bX} ${fTopY-12} ${bX+fHW+4} ${fTopY} L${bX+nHW} ${bottY} L${bX-nHW} ${bottY} Z`,
-    fTopY, fHW,
+    back:  `M${bX-bHW} ${bTopY+10} C${bX-bHW} ${bCurveY} ${bX+bHW} ${bCurveY} ${bX+bHW} ${bTopY+10} L${bX+nHW+8} ${bottY} L${bX-nHW-8} ${bottY} Z`,
+    front: `M${bX-fHW-8} ${fTopY} Q${bX} ${fDipY} ${bX+fHW+8} ${fTopY} L${bX+nHW+2} ${bottY} L${bX-nHW-2} ${bottY} Z`,
+    fTopY, fHW, fDipY, nHW
   }
 }
 
@@ -606,125 +756,159 @@ function WrapClassic({ gatherX, gatherY, CH, delay, part }) {
 }
 
 // ── Style 1: Kraft paper cone ─────────────────────────────────────────────────
-function WrapKraft({ gatherX, gatherY, CH, delay, part }) {
+function WrapKraft({ gatherX, gatherY, CH, delay, part, seed }) {
   const bX    = gatherX
-  const bTopY = 175, fTopY = 248, bottY = 400, nHW = 20
-  const geom  = coneGeom(bX, bTopY, fTopY, bottY, 116, nHW)
+  const bTopY = 130, fTopY = 238, bottY = 400, nHW = 22
+  const geom  = coneGeom(bX, bTopY, fTopY, bottY, 145, nHW)
   const paper = '#C9965A', shade = '#A87840', hi = '#E8C07A'
   const bowY  = bottY - 18
+  const fHW   = geom.fHW
+
+  const pattern = getPatternDef('kraft', seed % 10, shade, paper)
 
   if (part === 'back') {
     return (
       <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         transition={{ delay: delay * 0.4, duration: 0.8 }}>
+        <defs>{pattern.def}</defs>
         <path d={geom.back} fill="rgba(0,0,0,0.06)" transform="translate(4,6)" />
         <path d={geom.back} fill={shade} opacity={0.94} />
       </motion.g>
     )
   }
-  const fHW = geom.fHW
-  return (
-    <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-      transition={{ delay, duration: 0.5 }}>
-      <path d={geom.front} fill={paper} />
-      {/* crease lines */}
-      {[-54,-28,0,28,54].map((off,i) => (
-        <line key={i}
-          x1={bX+off*((fHW)/60)} y1={fTopY+8} x2={bX+off*0.20} y2={bottY-10}
-          stroke={shade} strokeWidth={1} opacity={0.26} />
-      ))}
-      {/* fold highlight arc */}
-      <path d={`M${bX-fHW-4} ${fTopY} Q${bX} ${fTopY-12} ${bX+fHW+4} ${fTopY}`}
-        stroke={hi} strokeWidth={4} fill="none" opacity={0.65} strokeLinecap="round" />
-      <ellipse cx={bX} cy={bowY} rx={nHW} ry={6} fill={shade} />
-      <Bow cx={bX} cy={bowY}
-        bowColor="#8B6914" bowDark="#5A4008" bowLight="#D4A830" delay={delay} />
-    </motion.g>
-  )
+  
+  if (part === 'middle') {
+    return (
+      <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        transition={{ delay: delay * 0.8, duration: 0.5 }}>
+        {/* main front body using pattern */}
+        <path d={geom.front} fill={`url(#${pattern.id})`} />
+
+        {/* fold highlight arc */}
+        <path d={`M${bX-fHW-8} ${fTopY} Q${bX} ${geom.fDipY} ${bX+fHW+8} ${fTopY}`}
+          stroke={hi} strokeWidth={4} fill="none" opacity={0.65} strokeLinecap="round" />
+      </motion.g>
+    )
+  }
+  
+  if (part === 'front') {
+    return (
+      <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        transition={{ delay, duration: 0.5 }}>
+        <ellipse cx={bX} cy={bowY} rx={geom.nHW} ry={6} fill={shade} opacity={0.5} />
+        <Bow cx={bX} cy={bowY}
+          bowColor="#8B6914" bowDark="#5A4008" bowLight="#D4A830" delay={delay} />
+      </motion.g>
+    )
+  }
+  return null
 }
 
 // ── Style 2: Romantic pink ruffled paper ─────────────────────────────────────
-function WrapRomantic({ gatherX, gatherY, CH, delay, part }) {
+function WrapRomantic({ gatherX, gatherY, CH, delay, part, seed }) {
   const bX    = gatherX
-  const bTopY = 170, fTopY = 245, bottY = 402, nHW = 20
-  const geom  = coneGeom(bX, bTopY, fTopY, bottY, 120, nHW)
+  const bTopY = 125, fTopY = 236, bottY = 402, nHW = 22
+  const geom  = coneGeom(bX, bTopY, fTopY, bottY, 148, nHW)
   const pBack = '#F093AA', pFront = '#FFB7C5', pHi = '#FFD6E0'
   const bowY  = bottY - 18
   const fHW   = geom.fHW
+
+  const pattern = getPatternDef('romantic', seed % 10, '#E885A1', pFront)
 
   if (part === 'back') {
     return (
       <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         transition={{ delay: delay * 0.4, duration: 0.8 }}>
+        <defs>{pattern.def}</defs>
         <path d={geom.back} fill="rgba(0,0,0,0.05)" transform="translate(4,6)" />
         <path d={geom.back} fill={pBack} opacity={0.89} />
       </motion.g>
     )
   }
-  const ruffles = Array.from({ length: 9 }, (_, i) => ({
-    x: bX - fHW + i * (fHW * 2 / 8),
-    y: fTopY + (i % 2 === 0 ? 0 : -9),
-  }))
-  return (
-    <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-      transition={{ delay, duration: 0.5 }}>
-      <path d={geom.front} fill={pFront} />
-      {ruffles.map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r={7}
-          fill={i % 2 ? pFront : pHi} opacity={0.72} />
-      ))}
-      {[-48,-24,0,24,48].map((off,i) => (
-        <line key={i}
-          x1={bX+off*(fHW/60)} y1={fTopY+10} x2={bX+off*0.20} y2={bottY-10}
-          stroke={pBack} strokeWidth={1.2} opacity={0.28} />
-      ))}
-      <path d={`M${bX-fHW-4} ${fTopY} Q${bX} ${fTopY-12} ${bX+fHW+4} ${fTopY}`}
-        stroke={pHi} strokeWidth={4} fill="none" opacity={0.72} strokeLinecap="round" />
-      <ellipse cx={bX} cy={bowY} rx={nHW} ry={6} fill={pBack} opacity={0.88} />
-      <Bow cx={bX} cy={bowY}
-        bowColor="#FF7EB6" bowDark="#CC4488" bowLight="#FFD0E8" delay={delay} />
-    </motion.g>
-  )
+  
+  if (part === 'middle') {
+    const ruffles = Array.from({ length: 9 }, (_, i) => {
+      const x = bX - fHW - 4 + i * ((fHW * 2 + 8) / 8);
+      const t = i / 8;
+      const y = fTopY * (1-t)*(1-t) + geom.fDipY * 2 * (1-t) * t + fTopY * t*t;
+      return { x, y: y + (i % 2 === 0 ? 0 : -9) };
+    })
+    return (
+      <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        transition={{ delay: delay * 0.8, duration: 0.5 }}>
+        <path d={geom.front} fill={`url(#${pattern.id})`} />
+  
+        {ruffles.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r={7}
+            fill={i % 2 ? pFront : pHi} opacity={0.72} />
+        ))}
+        <path d={`M${bX-fHW-8} ${fTopY} Q${bX} ${geom.fDipY} ${bX+fHW+8} ${fTopY}`}
+          stroke={pHi} strokeWidth={4} fill="none" opacity={0.72} strokeLinecap="round" />
+      </motion.g>
+    )
+  }
+
+  if (part === 'front') {
+    return (
+      <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        transition={{ delay, duration: 0.5 }}>
+        <ellipse cx={bX} cy={bowY} rx={geom.nHW} ry={6} fill={pBack} opacity={0.3} />
+        <Bow cx={bX} cy={bowY}
+          bowColor="#FF7EB6" bowDark="#CC4488" bowLight="#FFD0E8" delay={delay} />
+      </motion.g>
+    )
+  }
+  return null
 }
 
 // ── Style 3: Elegant dark paper + gold bow ───────────────────────────────────
-function WrapElegant({ gatherX, gatherY, CH, delay, part }) {
+function WrapElegant({ gatherX, gatherY, CH, delay, part, seed }) {
   const bX    = gatherX
-  const bTopY = 173, fTopY = 246, bottY = 398, nHW = 20
-  const geom  = coneGeom(bX, bTopY, fTopY, bottY, 115, nHW)
+  const bTopY = 125, fTopY = 236, bottY = 398, nHW = 22
+  const geom  = coneGeom(bX, bTopY, fTopY, bottY, 142, nHW)
   const dark  = '#1C3D28', shade = '#142D1E', gold = '#D4A830'
   const bowY  = bottY - 18
   const fHW   = geom.fHW
+
+  const pattern = getPatternDef('elegant', seed % 10, '#10241A', dark)
 
   if (part === 'back') {
     return (
       <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         transition={{ delay: delay * 0.4, duration: 0.8 }}>
+        <defs>{pattern.def}</defs>
         <path d={geom.back} fill="rgba(0,0,0,0.09)" transform="translate(4,6)" />
         <path d={geom.back} fill={shade} />
       </motion.g>
     )
   }
-  return (
-    <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-      transition={{ delay, duration: 0.5 }}>
-      <path d={geom.front} fill={dark} />
-      <path d={`M${bX-fHW-4} ${fTopY} Q${bX} ${fTopY-12} ${bX+fHW+4} ${fTopY}`}
-        stroke={gold} strokeWidth={2} fill="none" opacity={0.78} />
-      {[-48,-24,0,24,48].map((off,i) => (
-        <line key={i}
-          x1={bX+off*(fHW/60)} y1={fTopY+10} x2={bX+off*0.20} y2={bottY-10}
-          stroke={gold} strokeWidth={0.9} opacity={0.20} />
-      ))}
-      <ellipse cx={bX} cy={bowY} rx={nHW} ry={6} fill={shade} />
-      <ellipse cx={bX} cy={bowY} rx={nHW} ry={6} stroke={gold} strokeWidth={1.5} fill="none" opacity={0.80} />
-      <Bow cx={bX} cy={bowY}
-        bowColor={gold} bowDark="#8B6914" bowLight="#F4D580" delay={delay} />
-    </motion.g>
-  )
+  
+  if (part === 'middle') {
+    return (
+      <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        transition={{ delay: delay * 0.8, duration: 0.5 }}>
+        <path d={geom.front} fill={`url(#${pattern.id})`} />
+  
+        <path d={`M${bX-fHW-8} ${fTopY} Q${bX} ${geom.fDipY} ${bX+fHW+8} ${fTopY}`}
+          stroke={gold} strokeWidth={2} fill="none" opacity={0.78} />
+      </motion.g>
+    )
+  }
+  if (part === 'front') {
+    return (
+      <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        transition={{ delay, duration: 0.5 }}>
+        <ellipse cx={bX} cy={bowY} rx={geom.nHW} ry={6} fill={shade} opacity={0.3} />
+        <ellipse cx={bX} cy={bowY} rx={geom.nHW} ry={6} stroke={gold} strokeWidth={1.5} fill="none" opacity={0.80} />
+        <Bow cx={bX} cy={bowY}
+          bowColor={gold} bowDark="#8B6914" bowLight="#F4D580" delay={delay} />
+      </motion.g>
+    )
+  }
+  return null
 }
 // Dispatcher
-const WRAP_STYLES = [WrapClassic, WrapKraft, WrapRomantic, WrapElegant]
+const WRAP_STYLES = [WrapKraft, WrapRomantic, WrapElegant]
 
 
 
@@ -782,6 +966,19 @@ const LEAF_DEFS = [
   { x1: 132, y1: 278, length: 50, angle: -120, delay: 0.40 },
   { x1: 200, y1: 276, length: 48, angle:  -58, delay: 0.42 },
   { x1: 170, y1: 282, length: 44, angle:  -88, delay: 0.44 },
+]
+
+const FERN_POSITIONS = [
+  { x: 74, y: 154, angle: -125, scale: 1.1, delay: 0.1 },
+  { x: 265, y: 148, angle: -55, scale: 1.2, delay: 0.15 },
+  { x: 125, y: 65, angle: -105, scale: 0.9, delay: 0.08 },
+  { x: 200, y: 60, angle: -70, scale: 0.85, delay: 0.12 },
+]
+
+const EUCALYPTUS_POSITIONS = [
+  { x: 60, y: 110, angle: -140, scale: 1.2, delay: 0.1 },
+  { x: 280, y: 105, angle: -35, scale: 1.1, delay: 0.12 },
+  { x: 165, y: 40, angle: -85, scale: 0.9, delay: 0.05 },
 ]
 
 const DEFAULT_TYPES  = ['rose', 'cherry', 'sunflower', 'tulip', 'peony']
@@ -862,9 +1059,13 @@ export default function BouquetDisplay({ selectedFlowers }) {
 
           {/* ── WRAP BACK (paper behind flowers) ── */}
           <WrapComponent part="back"
-            gatherX={GATHER_X} gatherY={GATHER_Y} CH={CH} delay={1.4} />
+            gatherX={GATHER_X} gatherY={GATHER_Y} CH={CH} delay={1.4} seed={count + (selectedFlowers?.[0]?.flowerId?.charCodeAt(0) || 0)} />
 
           <Stems flowers={[...mainFlowers, ...smallFlowers]} gatherX={GATHER_X} gatherY={GATHER_Y} />
+
+          {/* Draw back greenery first */}
+          {FERN_POSITIONS.map((f, i) => <Fern key={`fn-${i}`} {...f} />)}
+          {EUCALYPTUS_POSITIONS.map((e, i) => <Eucalyptus key={`eu-${i}`} {...e} />)}
 
           {LEAF_DEFS.map((l, i) => (
             <Leaf key={i} {...l}
@@ -877,14 +1078,25 @@ export default function BouquetDisplay({ selectedFlowers }) {
             <BqSmall key={i} cx={f.cx} cy={f.cy} r={f.r} color={f.colorHex} delay={f.delay} />
           ))}
 
-          {mainFlowers.map((f, i) => {
+          {/* Only draw back/mid flowers here. Foreground flowers > 210y go AFTER middle wrap */}
+          {mainFlowers.filter(f => f.cy <= 210).map((f, i) => {
             const R = RENDERERS[f.svgType] || RENDERERS.rose
-            return <R key={i} cx={f.cx} cy={f.cy} r={f.r} color={f.colorHex} delay={f.delay} variant={f.variant} />
+            return <R key={`bg-${i}`} cx={f.cx} cy={f.cy} r={f.r} color={f.colorHex} delay={f.delay} variant={f.variant} />
           })}
 
-          {/* ── WRAP FRONT (fold edge + bow, in front of lower flowers) ── */}
+          {/* ── WRAP MIDDLE (large piece in front of back flowers, but behind bottom flowers) ── */}
+          <WrapComponent part="middle"
+            gatherX={GATHER_X} gatherY={GATHER_Y} CH={CH} delay={1.5} seed={count + (selectedFlowers?.[0]?.flowerId?.charCodeAt(0) || 0)} />
+
+          {/* ── Foreground flowers rendering on top of the 'middle' wrap ── */}
+          {mainFlowers.filter(f => f.cy > 210).map((f, i) => {
+            const R = RENDERERS[f.svgType] || RENDERERS.rose
+            return <R key={`fg-${i}`} cx={f.cx} cy={f.cy} r={f.r} color={f.colorHex} delay={f.delay + 0.1} variant={f.variant} />
+          })}
+
+          {/* ── WRAP FRONT (ribbon and bow, fully on top of everything) ── */}
           <WrapComponent part="front"
-            gatherX={GATHER_X} gatherY={GATHER_Y} CH={CH} delay={1.6} />
+            gatherX={GATHER_X} gatherY={GATHER_Y} CH={CH} delay={1.6} seed={count + (selectedFlowers?.[0]?.flowerId?.charCodeAt(0) || 0)} />
         </svg>
 
         {SPARKS.map(s => (
