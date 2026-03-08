@@ -237,7 +237,7 @@ export default function IntroScreen({ onComplete }) {
       id: "bloom",
       texts: [
         "Chúc mừng ngày 8/3 —",
-        "Cảm ơn vì những đóng góp của bạn với BambuUP! 🌸",
+        "Cảm ơn vì sự đồng hành của bạn với BambuUP! 🌸",
       ],
       action: "Bắt đầu",
     },

@@ -6,7 +6,7 @@ const PETAL_COLORS = ['#FF7EB6', '#FFB347', '#A78BFA', '#6EE7B7', '#FDE68A']
 export default function FinaleScreen({ onRestart }) {
   return (
     <motion.div
-      className="fixed inset-0 flex flex-col items-center justify-center text-center px-6"
+      className="fixed inset-0 overflow-hidden"
       style={{ background: 'linear-gradient(180deg, #F5F5FA 0%, #EFEFF5 100%)', zIndex: 30 }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -62,7 +62,8 @@ export default function FinaleScreen({ onRestart }) {
         />
       ))}
 
-      <div className="relative z-10 max-w-xl">
+      <div className="absolute inset-0 overflow-y-auto flex flex-col items-center px-6">
+        <div className="relative z-10 max-w-xl w-full my-auto py-12 flex flex-col items-center justify-center text-center">
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
@@ -121,7 +122,7 @@ export default function FinaleScreen({ onRestart }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 3.4, duration: 1 }}
-          className="text-sm mb-8 font-medium"
+          className="text-sm mb-6 font-medium"
           style={{ color: '#4B5563', fontFamily: 'Inter', letterSpacing: '0.05em' }}
         >
           Sự tài giỏi, lòng tốt và sức mạnh của các bạn truyền cảm hứng cho chúng tôi mỗi ngày.<br />
@@ -132,13 +133,13 @@ export default function FinaleScreen({ onRestart }) {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 3.8, duration: 1 }}
-          className="flex flex-col items-center justify-center mb-10 gap-2"
+          className="flex flex-col items-center justify-center mb-5"
         >
-          <span className="text-xs italic text-gray-400 font-medium font-serif">— Từ —</span>
+          <span className="text-xs italic text-gray-400 font-medium font-serif z-10">— Từ —</span>
           <img 
-            src="/favicon.png" 
+            src="/Copy of Artboard 18_1@3x.png" 
             alt="BambuUP" 
-            className="h-8 md:h-10 opacity-70 hover:opacity-100 transition-opacity duration-500"
+            className="h-24 md:h-28 opacity-80 hover:opacity-100 transition-opacity duration-500 object-contain -mt-3"
           />
         </motion.div>
 
@@ -156,10 +157,12 @@ export default function FinaleScreen({ onRestart }) {
             background: 'rgba(16, 185, 129, 0.1)',
             borderColor: 'rgba(5, 150, 105, 0.4)',
             color: '#047857',
+            marginBottom: '2rem'
           }}
         >
           Quay lại Khu Vườn
         </motion.button>
+        </div>
       </div>
     </motion.div>
   )
