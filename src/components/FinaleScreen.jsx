@@ -92,7 +92,7 @@ export default function FinaleScreen({ onRestart }) {
             color: '#111827',
           }}
         >
-          Gửi đến những người phụ nữ phi thường của BambuUP —
+          Gửi đến những người phụ nữ phi thường
         </motion.h1>
 
         <motion.h2
@@ -106,7 +106,7 @@ export default function FinaleScreen({ onRestart }) {
             color: '#059669',
           }}
         >
-          cảm ơn vì đã giúp khu vườn của chúng ta nở rộ.
+          cảm ơn đã giúp khu vườn đổi mới sáng tạo luôn nở rộ.
         </motion.h2>
 
         <motion.div
@@ -121,12 +121,26 @@ export default function FinaleScreen({ onRestart }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 3.4, duration: 1 }}
-          className="text-sm mb-10 font-medium"
+          className="text-sm mb-8 font-medium"
           style={{ color: '#4B5563', fontFamily: 'Inter', letterSpacing: '0.05em' }}
         >
           Sự tài giỏi, lòng tốt và sức mạnh của các bạn truyền cảm hứng cho chúng tôi mỗi ngày.<br />
           Khu vườn này tồn tại là nhờ có các bạn. 💫
         </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 3.8, duration: 1 }}
+          className="flex flex-col items-center justify-center mb-10 gap-2"
+        >
+          <span className="text-xs italic text-gray-400 font-medium font-serif">— Từ —</span>
+          <img 
+            src="/favicon.png" 
+            alt="BambuUP" 
+            className="h-8 md:h-10 opacity-70 hover:opacity-100 transition-opacity duration-500"
+          />
+        </motion.div>
 
         <motion.button
           

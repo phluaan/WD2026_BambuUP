@@ -388,7 +388,7 @@ export default function GardenScene({ onFinale }) {
                     }
                   >
                     <Sparkles size={18} />
-                    Tạo Bó Hoa
+                    Nhận thông điệp
                   </motion.button>
                 </div>
               </div>
