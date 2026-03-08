@@ -804,6 +804,107 @@ export const FLOWER_SVGS = {
     )
   },
 
+  // ── LILY ──────────────────────────────────────────────────────────────────
+  lily: ({ color, secondary, isBlooomed }) => {
+    const c = color || '#FF7EB6'
+    const s = secondary || '#FFD6E0'
+    const dark = dk(c, 0.30)
+    const bloom = isBlooomed
+    const id = c.replace('#','')
+    return (
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"
+        style={{ filter: 'drop-shadow(1px 4px 8px rgba(0,0,0,0.26))' }}>
+        <defs>
+          <linearGradient id={`lyP${id}`} x1="50%" y1="100%" x2="50%" y2="0%">
+            <stop offset="0%"   stopColor={s}    stopOpacity="0.85" />
+            <stop offset="45%"  stopColor={c} />
+            <stop offset="100%" stopColor={dark}  stopOpacity="0.80" />
+          </linearGradient>
+        </defs>
+
+        <OrganicStem />
+
+        {/* Watercolor wash */}
+        <circle cx="50" cy="44" r="25" fill={c} opacity="0.13" style={{ filter: 'blur(9px)' }} />
+
+        {/* 6 elongated petals */}
+        {Array.from({ length: 6 }).map((_, i) => {
+          const angle = i * 60
+          const len = bloom ? 30 : 22
+          const w   = bloom ? 9  : 6.5
+          return (
+            <motion.path key={`lyP${i}`}
+              d={`M50 44 C${50-w} ${44-len*0.38} ${50-w*0.45} ${44-len*0.88} 50 ${44-len} C${50+w*0.45} ${44-len*0.88} ${50+w} ${44-len*0.38} 50 44 Z`}
+              fill={`url(#lyP${id})`} stroke={dark} strokeWidth="0.55" strokeOpacity="0.32"
+              style={{ transformOrigin: '50px 44px', rotate: `${angle}deg` }}
+              animate={{ scale: bloom ? 1.10 : 0.80, opacity: bloom ? 1 : 0.88 }}
+              transition={{ duration: 0.72, delay: i * 0.05 }}
+            />
+          )
+        })}
+
+        {/* Center stripe highlight on alternating petals */}
+        {[0, 120, 240].map((angle, i) => {
+          const len = bloom ? 26 : 19
+          return (
+            <motion.line key={`lySt${i}`}
+              x1="50" y1="44" x2="50" y2={44 - len}
+              stroke="#fff" strokeWidth="0.85" strokeOpacity="0.38" strokeLinecap="round"
+              style={{ transformOrigin: '50px 44px', rotate: `${angle}deg` }}
+              animate={{ opacity: bloom ? 0.38 : 0.2 }}
+              transition={{ duration: 0.6, delay: 0.1 + i * 0.05 }}
+            />
+          )
+        })}
+
+        {/* Spots on petals */}
+        {Array.from({ length: 6 }).map((_, i) => {
+          const angle = (i * 60) * Math.PI / 180
+          const t = bloom ? 0.55 : 0.45
+          const px = 50 + Math.sin(angle) * 30 * t * 0.55
+          const py = 44 - Math.cos(angle) * 30 * t
+          return (
+            <motion.circle key={`lyDot${i}`}
+              cx={px} cy={py} r={bloom ? 1.4 : 0.9}
+              fill={dark} opacity={0.28}
+              animate={{ opacity: bloom ? 0.28 : 0.14, r: bloom ? 1.4 : 0.9 }}
+              transition={{ duration: 0.6, delay: 0.15 + i * 0.04 }}
+            />
+          )
+        })}
+
+        {/* 6 long stamens between petals */}
+        {Array.from({ length: 6 }).map((_, i) => {
+          const angle = (i * 60 + 30) * Math.PI / 180
+          const stLen = bloom ? 27 : 17
+          const ex = 50 + Math.sin(angle) * stLen
+          const ey = 44 - Math.cos(angle) * stLen
+          return (
+            <motion.g key={`lyStm${i}`}
+              animate={{ opacity: bloom ? 0.85 : 0.35, scale: bloom ? 1 : 0.65 }}
+              style={{ transformOrigin: '50px 44px' }}
+              transition={{ duration: 0.65, delay: 0.08 + i * 0.04 }}>
+              <line x1="50" y1="44" x2={ex} y2={ey}
+                stroke="#8B4513" strokeWidth="0.75" strokeLinecap="round" />
+              {/* T-shaped anther */}
+              <ellipse cx={ex} cy={ey} rx="2.0" ry="0.85"
+                fill="#B5451B" opacity="0.88"
+                transform={`rotate(${i * 60 + 30},${ex},${ey})`} />
+            </motion.g>
+          )
+        })}
+
+        {/* Center pistil */}
+        <motion.circle cx="50" cy="44" r={bloom ? 4.5 : 3}
+          fill="#FFF5E0" stroke={dark} strokeWidth="0.5"
+          animate={{ r: bloom ? 4.5 : 3 }} transition={{ duration: 0.5 }} />
+        <motion.circle cx="50" cy="44" r={bloom ? 2.8 : 1.8}
+          fill="#FFEC8B"
+          animate={{ r: bloom ? 2.8 : 1.8 }} transition={{ duration: 0.5 }} />
+      </svg>
+    )
+  },
+
   // ── LAVENDER ──────────────────────────────────────────────────────────────
   lavender: ({ color, secondary, isBlooomed }) => {
     const c = color || '#a855f7'
